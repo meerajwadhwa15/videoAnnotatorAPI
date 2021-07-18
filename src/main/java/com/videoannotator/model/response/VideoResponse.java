@@ -14,5 +14,6 @@ public class VideoResponse {
     private String size;
     private String url;
     private VideoStatusEnum status;
-    List<UserResponse> assignedUsers;
+    List<SegmentResponse> segments;
+    List<UserListResponse> assignedUsers;
 }

@@ -67,6 +67,9 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 "/swagger-ui/**",
                 "/user/signup",
                 "/user/signin",
+                "/user/resetPassword",
+                "/user/newPassword",
+                "/user/verifyToken",
                 "/actuator/**").permitAll()
                 .anyRequest().authenticated();
         httpSecurity.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);

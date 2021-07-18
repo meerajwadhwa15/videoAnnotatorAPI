@@ -1,55 +1,34 @@
 package com.videoannotator.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.Collections;
 
+@Getter
+@Setter
+@Accessors(chain = true)
 public class UserDetailsImpl implements UserDetails {
     private static final long serialVersionUID = 1L;
 
-    private final Long id;
-    private final String email;
-    private final String name;
+    private Long id;
+    private String email;
+    private String name;
     @JsonIgnore
-    private final String password;
-    private final Long roleId;
-    private final Collection<? extends GrantedAuthority> authorities;
-
-    public UserDetailsImpl(Long id, String email, String name, String password, Long roleId,
-                           Collection<? extends GrantedAuthority> authorities) {
-        this.id = id;
-        this.email = email;
-        this.name = name;
-        this.roleId = roleId;
-        this.password = password;
-
-        this.authorities = authorities;
-    }
-
-    public static UserDetailsImpl build(User user) {
-        Collection<? extends GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority(user.getRole().getRoleName()));
-        return new UserDetailsImpl(user.getId(), user.getEmail(), user.getFullName(), user.getPassword(), user.getRole().getId(), authorities);
-    }
+    private String password;
+    private Long roleId;
+    private Collection<? extends GrantedAuthority> authorities;
+    private String address;
+    private String phone;
+    private String introduction;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public Long getRoleId() {
-        return roleId;
     }
 
     @Override
@@ -60,10 +39,6 @@ public class UserDetailsImpl implements UserDetails {
     @Override
     public String getUsername() {
         return null;
-    }
-
-    public String getName() {
-        return name;
     }
 
     @Override

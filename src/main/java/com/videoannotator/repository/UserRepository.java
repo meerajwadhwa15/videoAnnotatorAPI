@@ -10,5 +10,8 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmailAndActive(String email, boolean isActive);
+
     List<User> findAllByRoleIsNotAndActive(Role role, boolean isActive);
+
+    List<User> findAllByRoleIsNotAndIdInAndActive(Role role, List<Long> id, boolean isActive);
 }

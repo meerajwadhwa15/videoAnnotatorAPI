@@ -3,10 +3,13 @@ package com.videoannotator.controller.impl;
 
 import com.videoannotator.controller.IUserController;
 import com.videoannotator.model.request.LoginRequest;
+import com.videoannotator.model.request.PasswordRequest;
 import com.videoannotator.model.request.RegisterRequest;
+import com.videoannotator.model.request.UpdateUserRequest;
 import com.videoannotator.model.response.LoginResponse;
 import com.videoannotator.model.response.RegisterResponse;
-import com.videoannotator.model.response.UserResponse;
+import com.videoannotator.model.response.UserDetailResponse;
+import com.videoannotator.model.response.UserListResponse;
 import com.videoannotator.service.IUserService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -34,15 +37,46 @@ public class UserControllerImpl implements IUserController {
     }
 
     @Override
-    public ResponseEntity<LoginResponse> currentUser() {
-        LoginResponse response = userService.currentUser();
+    public ResponseEntity<UserDetailResponse> currentUser() {
+        UserDetailResponse response = userService.currentUser();
         return ResponseEntity.ok(response);
     }
 
     @Override
-    public ResponseEntity<List<UserResponse>> listUser() {
-        List<UserResponse> userResponses = userService.listUser();
-        return ResponseEntity.ok(userResponses);
+    public ResponseEntity<List<UserListResponse>> listUser() {
+        List<UserListResponse> userListRespons = userService.listUser();
+        return ResponseEntity.ok(userListRespons);
     }
+
+    @Override
+    public ResponseEntity<String> resetPassword(String email) {
+        String response = userService.resetPassword(email);
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<String> newPassword(String token, PasswordRequest passwordRequest) {
+        String response = userService.newPassword(token, passwordRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<String> changePassword(PasswordRequest passwordRequest) {
+        String response = userService.changePassword(passwordRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<String> verifyToken(String token) {
+        String response = userService.verifyToken(token);
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<UserDetailResponse> updateUser(UpdateUserRequest request) {
+        UserDetailResponse response = userService.updateUser(request);
+        return ResponseEntity.ok(response);
+    }
+
 
 }

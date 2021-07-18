@@ -74,4 +74,28 @@ public class GlobalExceptionHandler {
         response.setMessage(messageSource.getMessage("error.permission.denied", null, LocaleContextHolder.getLocale()));
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler({TokenExpiredException.class})
+    public ResponseEntity<ErrorResponse> tokenExpired() {
+        var response = new ErrorResponse();
+        response.setCode(ResponseCodeEnum.NOK.getValue());
+        response.setMessage(messageSource.getMessage("error.token.expired", null, LocaleContextHolder.getLocale()));
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler({PasswordIncorrectException.class})
+    public ResponseEntity<ErrorResponse> passwordIncorrect() {
+        var response = new ErrorResponse();
+        response.setCode(ResponseCodeEnum.NOK.getValue());
+        response.setMessage(messageSource.getMessage("error.password.incorrect", null, LocaleContextHolder.getLocale()));
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler({SegmentOverlapException.class})
+    public ResponseEntity<ErrorResponse> segmentOverlap() {
+        var response = new ErrorResponse();
+        response.setCode(ResponseCodeEnum.NOK.getValue());
+        response.setMessage(messageSource.getMessage("error.segment.overlap", null, LocaleContextHolder.getLocale()));
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
 }

@@ -1,5 +1,6 @@
 package com.videoannotator.validation;
 
+import com.videoannotator.model.request.PasswordRequest;
 import com.videoannotator.model.request.RegisterRequest;
 
 import javax.validation.ConstraintValidator;
@@ -14,7 +15,12 @@ public class PasswordMatchesValidator implements ConstraintValidator<PasswordMat
 
     @Override
     public boolean isValid(Object value, ConstraintValidatorContext context) {
-        final RegisterRequest user = (RegisterRequest) value;
-        return user.getPassword().equals(user.getMatchingPassword());
+        if (value instanceof RegisterRequest) {
+            final RegisterRequest user = (RegisterRequest) value;
+            return user.getPassword().equals(user.getMatchingPassword());
+        } else {
+            final PasswordRequest password = (PasswordRequest) value;
+            return password.getPassword().equals(password.getMatchingPassword());
+        }
     }
 }
