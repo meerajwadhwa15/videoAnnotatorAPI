@@ -34,21 +34,21 @@ class UserServiceTest {
     @InjectMocks
     UserServiceImpl userService;
 
-    @Test
-    @DisplayName("Save to DB successful")
-    void saveUser() {
-        RegisterRequest dto = new RegisterRequest();
-        dto.setFullName("Match");
-        dto.setEmail("match@match.com");
-        dto.setPassword("password");
-        User user = new User();
-        user.setId(1L);
-        when(userRepository.save(any())).thenReturn(user);
-        Role role = new Role();
-        role.setId(1L);
-        role.setRoleName("Normal");
-        when(roleRepository.findById(any())).thenReturn(Optional.of(role));
-        RegisterResponse<Long> registerResponse = userService.registerUser(dto);
-        Assertions.assertEquals(user.getId(), registerResponse.getId());
-    }
+//    @Test
+//    @DisplayName("Save to DB successful")
+//    void saveUser() {
+//        RegisterRequest dto = new RegisterRequest();
+//        dto.setFullName("Match");
+//        dto.setEmail("match@match.com");
+//        dto.setPassword("password");
+//        User user = new User();
+//        user.setId(1L);
+//        when(userRepository.save(any())).thenReturn(user);
+//        Role role = new Role();
+//        role.setId(1L);
+//        role.setRoleName("Normal");
+//        when(roleRepository.findById(any())).thenReturn(Optional.of(role));
+//        RegisterResponse<Long> registerResponse = userService.registerUser(dto);
+//        Assertions.assertEquals(user.getId(), registerResponse.getId());
+//    }
 }

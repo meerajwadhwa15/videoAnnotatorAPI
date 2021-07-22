@@ -9,9 +9,9 @@ import javax.mail.MessagingException;
  */
 public interface IEmailService {
     /**
-     * Register User ( store ) and returns the user object
+     * Confirm email or reset password
      *
      * @param mail - Mail information
      */
-    void sendResetPasswordMail(Mail mail) throws MessagingException;
+    void sendMail(Mail mail, String mailType) throws MessagingException;
 }

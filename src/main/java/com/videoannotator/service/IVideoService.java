@@ -30,10 +30,11 @@ public interface IVideoService {
     /**
      * Assign video for user
      *
-     * @param assignRequest     - Video's id and list user's id
+     * @param assignRequest     - list user's id
+     * @param videoId           - Video's id
      * @return response         - Video data
      */
-    VideoResponse assignVideo(VideoAssignRequest assignRequest);
+    VideoResponse assignVideo(VideoAssignRequest assignRequest, Long videoId);
 
     /**
      * Add video
@@ -68,4 +69,23 @@ public interface IVideoService {
      * @return response         - Video data
      */
     VideoResponse addSegment(Long id, SegmentRequest request);
+
+    /**
+     * Edit video annotation
+     *
+     * @param id                - Video's id
+     * @param request           - Segment's data
+     * @param segmentId         - Segment's id
+     * @return response         - Video data
+     */
+    VideoResponse editSegment(Long id, SegmentRequest request, Long segmentId);
+
+    /**
+     * Delete video segment
+     *
+     * @param videoId                - Video's id
+     * @param segmentId              - Segment's id
+     * @return response              - Video data
+     */
+    VideoResponse deleteSegment(Long videoId, Long segmentId);
 }

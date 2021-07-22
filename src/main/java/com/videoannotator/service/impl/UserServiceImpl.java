@@ -4,7 +4,7 @@ import com.videoannotator.config.jwt.JwtUtils;
 import com.videoannotator.constant.RoleEnum;
 import com.videoannotator.exception.*;
 import com.videoannotator.model.Mail;
-import com.videoannotator.model.PasswordReset;
+import com.videoannotator.model.ConfirmToken;
 import com.videoannotator.model.User;
 import com.videoannotator.model.UserDetailsImpl;
 import com.videoannotator.model.request.LoginRequest;
@@ -64,8 +64,11 @@ public class UserServiceImpl implements IUserService {
         user.setEmail(registerRequest.getEmail());
         user.setRole(roleRepository.findById(RoleEnum.NORMAL.getValue()).orElseThrow(NotFoundException::new));
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        user.setActive(true);
+        user.setActive(false);
         var userSaved = userRepository.save(user);
+        final var token = UUID.randomUUID().toString();
+        createToken(user, token);
+        constructConfirmEmail(token, user);
         var response = new RegisterResponse<Long>();
         response.setId(userSaved.getId());
         return response;
@@ -121,7 +124,7 @@ public class UserServiceImpl implements IUserService {
     public String resetPassword(String email) {
         var user = userRepository.findByEmailAndActive(email, true).orElseThrow(NotFoundException::new);
         final var token = UUID.randomUUID().toString();
-        createPasswordResetToken(user, token);
+        createToken(user, token);
         constructResetTokenEmail(token, user);
         return messageSource.getMessage(SUCCESS, null, LocaleContextHolder.getLocale());
     }
@@ -178,6 +181,21 @@ public class UserServiceImpl implements IUserService {
                 userSaved.getPhone(), userSaved.getIntroduction(), Collections.singletonList(userSaved.getRole().getRoleName()));
     }
 
+    @Override
+    public String confirmEmail(String token) {
+        var confirmToken = passwordResetRepository.findByToken(token).orElseThrow(NotFoundException::new);
+        var cal = Calendar.getInstance();
+        if (confirmToken.getExpiryDate().after(cal.getTime())) {
+            User user = userRepository.findById(confirmToken.getUser().getId()).orElseThrow(NotFoundException::new);
+            user.setActive(true);
+            userRepository.save(user);
+            passwordResetRepository.delete(confirmToken);
+            return messageSource.getMessage(SUCCESS, null, LocaleContextHolder.getLocale());
+        } else {
+            throw new TokenExpiredException();
+        }
+    }
+
     private UserDetailsImpl userDetails() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -187,20 +205,30 @@ public class UserServiceImpl implements IUserService {
         return userDetails;
     }
 
-    private void createPasswordResetToken(final User user, final String token) {
-        var myToken = new PasswordReset(token, user);
+    private void createToken(final User user, final String token) {
+        var myToken = new ConfirmToken(token, user);
         passwordResetRepository.save(myToken);
     }
 
     private void constructResetTokenEmail(final String token, final User user) {
         final String url = env.getProperty("url.frontend") + "/reset-password?token=" + token;
         final String subject = messageSource.getMessage("message.reset.password", null, LocaleContextHolder.getLocale());
+        sendMail(url, subject, user.getEmail(), "resetPassword");
+    }
+
+    private void constructConfirmEmail(final String token, final User user) {
+        final String url = env.getProperty("url.frontend") + "/email-confirmation?token=" + token;
+        final String subject = messageSource.getMessage("message.confirm.email", null, LocaleContextHolder.getLocale());
+        sendMail(url, subject, user.getEmail(), "confirmEmail");
+    }
+
+    private void sendMail (String url, String subject, String userMail, String type) {
         var mail = new Mail();
         mail.setSubject(subject);
-        mail.setSendTo(user.getEmail());
+        mail.setSendTo(userMail);
         mail.setUrl(url);
         try {
-            emailService.sendResetPasswordMail(mail);
+            emailService.sendMail(mail, type);
         } catch (MessagingException e) {
             log.error(e.getMessage());
         }

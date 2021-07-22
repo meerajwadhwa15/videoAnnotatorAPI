@@ -38,6 +38,6 @@ public class User {
     @ManyToMany(mappedBy = "userList")
     private List<Video> videos;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, orphanRemoval = true)
     List<VideoSegment> videoSegments;
 }

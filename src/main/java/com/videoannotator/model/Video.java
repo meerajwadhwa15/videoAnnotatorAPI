@@ -31,7 +31,7 @@ public class Video{
     @UpdateTimestamp
     private LocalDateTime updateTime;
 
-    @OneToMany(mappedBy = "video" ,cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "video" ,cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @OrderBy("startFrame ASC")
     List<VideoSegment> videoSegments;
 

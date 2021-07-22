@@ -26,14 +26,14 @@ public class VideoControllerImpl implements IVideoController {
     }
 
     @Override
-    public ResponseEntity<VideoResponse> detailVideo(Long id) {
-        VideoResponse response = videoService.detailVideo(id);
+    public ResponseEntity<VideoResponse> detailVideo(Long videoId) {
+        VideoResponse response = videoService.detailVideo(videoId);
         return ResponseEntity.ok(response);
     }
 
     @Override
-    public ResponseEntity<VideoResponse> assignVideo(VideoAssignRequest assignRequest) {
-        VideoResponse response = videoService.assignVideo(assignRequest);
+    public ResponseEntity<VideoResponse> assignVideo(VideoAssignRequest assignRequest, Long videoId) {
+        VideoResponse response = videoService.assignVideo(assignRequest, videoId);
         return ResponseEntity.ok(response);
     }
 
@@ -44,20 +44,32 @@ public class VideoControllerImpl implements IVideoController {
     }
 
     @Override
-    public ResponseEntity<VideoResponse> updateVideo(Long id, VideoRequest videoRequest) {
-        VideoResponse response = videoService.updateVideo(id, videoRequest);
+    public ResponseEntity<VideoResponse> updateVideo(Long videoId, VideoRequest videoRequest) {
+        VideoResponse response = videoService.updateVideo(videoId, videoRequest);
         return ResponseEntity.ok(response);
     }
 
     @Override
-    public ResponseEntity<String> deleteVideo(Long id) {
-        String response = videoService.deleteVideo(id);
+    public ResponseEntity<String> deleteVideo(Long videoId) {
+        String response = videoService.deleteVideo(videoId);
         return ResponseEntity.ok(response);
     }
 
     @Override
-    public ResponseEntity<VideoResponse> addSegment(Long id, SegmentRequest request) {
-        VideoResponse response = videoService.addSegment(id, request);
+    public ResponseEntity<VideoResponse> addSegment(Long videoId, SegmentRequest request) {
+        VideoResponse response = videoService.addSegment(videoId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<VideoResponse> editSegment(Long videoId, SegmentRequest request, Long segmentId) {
+        VideoResponse response = videoService.editSegment(videoId, request, segmentId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    public ResponseEntity<VideoResponse> deleteSegment(Long videoId, Long segmentId) {
+        VideoResponse response = videoService.deleteSegment(videoId, segmentId);
         return ResponseEntity.ok(response);
     }
 }

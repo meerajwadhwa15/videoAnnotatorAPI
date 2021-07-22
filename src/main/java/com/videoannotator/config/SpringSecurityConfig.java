@@ -70,6 +70,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 "/user/resetPassword",
                 "/user/newPassword",
                 "/user/verifyToken",
+                "/user/confirmEmail",
                 "/actuator/**").permitAll()
                 .anyRequest().authenticated();
         httpSecurity.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);

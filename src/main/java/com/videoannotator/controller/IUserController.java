@@ -51,7 +51,7 @@ public interface IUserController {
                     schema = @Schema(implementation = ErrorResponse.class))}),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @GetMapping("/current")
+    @GetMapping("/profile")
     ResponseEntity<UserDetailResponse> currentUser();
 
     @Operation(summary = "Get list normal User")
@@ -118,5 +118,15 @@ public interface IUserController {
                     schema = @Schema(implementation = ErrorResponse.class))})})
     @PutMapping("/update")
     ResponseEntity<UserDetailResponse> updateUser(@Valid @RequestBody UpdateUserRequest request);
+
+    @Operation(summary = "Confirm register email")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))}),
+            @ApiResponse(responseCode = "404", description = "Not Found", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))})})
+    @PostMapping("/confirmEmail")
+    ResponseEntity<String> confirmEmail(@Valid @RequestParam String token);
 }
 

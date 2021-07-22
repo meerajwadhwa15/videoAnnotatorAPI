@@ -85,4 +85,12 @@ public interface IUserService {
      * @return response         - User's updated information
      */
     UserDetailResponse updateUser(UpdateUserRequest userRequest);
+
+    /**
+     * Confirm email register
+     *
+     * @param token             - Token reset password
+     * @return string           - Ok message
+     */
+    String confirmEmail(String token);
 }

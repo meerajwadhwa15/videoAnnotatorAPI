@@ -30,7 +30,7 @@ public interface IVideoController {
                     array = @ArraySchema(schema = @Schema(implementation = VideoResponse.class)))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @GetMapping("/list")
+    @GetMapping
     ResponseEntity<List<VideoResponse>> listVideo();
 
     @Operation(summary = "Details video")
@@ -43,7 +43,7 @@ public interface IVideoController {
                     schema = @Schema(implementation = ErrorResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @GetMapping("/detail/{videoId}")
+    @GetMapping("/{videoId}")
     ResponseEntity<VideoResponse> detailVideo(@Valid @PathVariable Long videoId);
 
     @Operation(summary = "Assign video for user")
@@ -54,8 +54,8 @@ public interface IVideoController {
                     schema = @Schema(implementation = VideoResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @PatchMapping("/assign")
-    ResponseEntity<VideoResponse> assignVideo(@Valid @RequestBody VideoAssignRequest assignRequest);
+    @PatchMapping("/{videoId}")
+    ResponseEntity<VideoResponse> assignVideo(@RequestBody VideoAssignRequest assignRequest, @Valid @PathVariable Long videoId);
 
     @Operation(summary = "Add new video")
     @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
@@ -65,7 +65,7 @@ public interface IVideoController {
                     schema = @Schema(implementation = VideoResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @PostMapping("/add")
+    @PostMapping
     ResponseEntity<VideoResponse> addVideo(@Valid @RequestBody VideoRequest videoRequest);
 
     @Operation(summary = "Update video")
@@ -78,7 +78,7 @@ public interface IVideoController {
                     schema = @Schema(implementation = ErrorResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @PutMapping("/update/{videoId}")
+    @PutMapping("/{videoId}")
     ResponseEntity<VideoResponse> updateVideo(@Valid @PathVariable Long videoId, @Valid @RequestBody VideoRequest videoRequest);
 
     @Operation(summary = "Delete video")
@@ -90,19 +90,45 @@ public interface IVideoController {
                     schema = @Schema(implementation = ErrorResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @DeleteMapping("/delete/{videoId}")
+    @DeleteMapping("/{videoId}")
     ResponseEntity<String> deleteVideo(@Valid @PathVariable Long videoId);
 
     @Operation(summary = "Add annotation video")
     @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
             , content = @Content(), example = "Bearer xxxxx...")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Update video Successful", content = {@Content(mediaType = "application/json",
+            @ApiResponse(responseCode = "200", description = "Add annotation Successful", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = VideoResponse.class))}),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @PostMapping("/addSegment/{videoId}")
+    @PostMapping("/{videoId}/segment")
     ResponseEntity<VideoResponse> addSegment(@Valid @PathVariable Long videoId, @Valid @RequestBody SegmentRequest request);
+
+    @Operation(summary = "Edit annotation video")
+    @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
+            , content = @Content(), example = "Bearer xxxxx...")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Edit annotation Successful", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = VideoResponse.class))}),
+            @ApiResponse(responseCode = "404", description = "Not Found", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))}),
+            @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))})})
+    @PutMapping("/{videoId}/segment/{segmentId}")
+    ResponseEntity<VideoResponse> editSegment(@Valid @PathVariable Long videoId, @Valid @RequestBody SegmentRequest request, @PathVariable Long segmentId);
+
+    @Operation(summary = "Delete a video segment")
+    @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
+            , content = @Content(), example = "Bearer xxxxx...")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Delete Successful", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = VideoResponse.class))}),
+            @ApiResponse(responseCode = "404", description = "Not Found", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))}),
+            @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))})})
+    @DeleteMapping("{videoId}/segment/{segmentId}")
+    ResponseEntity<VideoResponse> deleteSegment(@Valid @PathVariable Long videoId, @Valid @PathVariable Long segmentId);
 }

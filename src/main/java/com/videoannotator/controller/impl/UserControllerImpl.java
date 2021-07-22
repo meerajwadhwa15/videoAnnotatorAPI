@@ -78,5 +78,11 @@ public class UserControllerImpl implements IUserController {
         return ResponseEntity.ok(response);
     }
 
+    @Override
+    public ResponseEntity<String> confirmEmail(String token) {
+        String response = userService.confirmEmail(token);
+        return ResponseEntity.ok(response);
+    }
+
 
 }

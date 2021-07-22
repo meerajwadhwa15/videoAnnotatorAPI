@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  videoAnnotator:
+    image: videoAnnotator:latest
+    container_name: videoAnnotator
+    ports:
+      - 8080:8080
+    restart: always

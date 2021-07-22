@@ -17,11 +17,11 @@ public class EmailServiceImpl implements IEmailService {
     private final TemplateEngine templateEngine;
     private final JavaMailSender javaMailSender;
 
-    public void sendResetPasswordMail(Mail mail) throws MessagingException {
+    public void sendMail(Mail mail, String mailType) throws MessagingException {
         var context = new Context();
         context.setVariable("mail", mail);
 
-        String process = templateEngine.process("resetPassword", context);
+        String process = templateEngine.process(mailType, context);
         var mimeMessage = javaMailSender.createMimeMessage();
         var helper = new MimeMessageHelper(mimeMessage);
         helper.setSubject(mail.getSubject());

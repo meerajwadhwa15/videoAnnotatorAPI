@@ -77,14 +77,14 @@ public class VideoServiceImpl implements IVideoService {
     }
 
     @Override
-    public VideoResponse assignVideo(VideoAssignRequest assignRequest) {
+    public VideoResponse assignVideo(VideoAssignRequest assignRequest, Long videoId) {
         UserDetailsImpl userDetails = userDetails();
         if (RoleEnum.ADMIN.getValue() != userDetails.getRoleId()) {
             throw new PermissionDeniedException();
         }
         List<User> userList = userRepository.findAllByRoleIsNotAndIdInAndActive(
                 roleRepository.findById(RoleEnum.ADMIN.getValue()).orElseThrow(NotFoundException::new), assignRequest.getUserId(), true);
-        var video = videoRepository.findById(assignRequest.getId()).orElseThrow(NotFoundException::new);
+        var video = videoRepository.findById(videoId).orElseThrow(NotFoundException::new);
         if (userList.isEmpty()) {
             video.setStatus(VideoStatusEnum.NOT_ASSIGNED);
         } else {
@@ -149,10 +149,10 @@ public class VideoServiceImpl implements IVideoService {
         UserDetailsImpl userDetails = userDetails();
         var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
         var user = userRepository.findByEmailAndActive(userDetails.getEmail(), true).orElseThrow(NotFoundException::new);
-        if (!video.getUserList().stream().map(User::getId).collect(Collectors.toList()).contains(user.getId())) {
+        if (RoleEnum.NORMAL.getValue() == userDetails.getRoleId() && !video.getUserList().stream().map(User::getId).collect(Collectors.toList()).contains(user.getId())) {
             throw new PermissionDeniedException();
         }
-        if(validateSegment(video, request)) {
+        if (validateSegment(video, request, null)) {
             VideoSegment segment = new VideoSegment();
             segment.setLabel(request.getLabel());
             segment.setStartFrame(request.getStartFrame());
@@ -167,6 +167,50 @@ public class VideoServiceImpl implements IVideoService {
         } else {
             throw new SegmentOverlapException();
         }
+    }
+
+    @Override
+    public VideoResponse editSegment(Long id, SegmentRequest request, Long segmentId) {
+        UserDetailsImpl userDetails = userDetails();
+        var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
+        if (!video.getVideoSegments().stream().map(VideoSegment::getId).collect(Collectors.toList()).contains(segmentId)) {
+            throw new NotFoundException();
+        }
+        var user = userRepository.findByEmailAndActive(userDetails.getEmail(), true).orElseThrow(NotFoundException::new);
+        var segment = segmentRepository.findById(segmentId).orElseThrow(NotFoundException::new);
+        if (RoleEnum.NORMAL.getValue() == userDetails.getRoleId() && !segment.getUser().getId().equals(user.getId())) {
+            throw new PermissionDeniedException();
+        }
+        if (validateSegment(video, request, segment)) {
+            segment.setLabel(request.getLabel());
+            segment.setStartFrame(request.getStartFrame());
+            segment.setEndFrame(request.getEndFrame());
+            video.getVideoSegments().add(segment);
+            var savedVideo = videoRepository.save(video);
+            var videoResponse = new VideoResponse();
+            setVideoResponse(videoResponse, savedVideo, RoleEnum.ADMIN.getValue() == userDetails.getRoleId());
+            return videoResponse;
+        } else {
+            throw new SegmentOverlapException();
+        }
+    }
+
+    @Override
+    public VideoResponse deleteSegment(Long videoId, Long segmentId) {
+        UserDetailsImpl userDetails = userDetails();
+        var video = videoRepository.findById(videoId).orElseThrow(NotFoundException::new);
+        if (!video.getVideoSegments().stream().map(VideoSegment::getId).collect(Collectors.toList()).contains(segmentId)) {
+            throw new NotFoundException();
+        }
+        var segment = segmentRepository.findById(segmentId).orElseThrow(NotFoundException::new);
+        if (RoleEnum.NORMAL.getValue() == userDetails.getRoleId() && !segment.getUser().getId().equals(userDetails.getId())) {
+            throw new PermissionDeniedException();
+        }
+        video.getVideoSegments().remove(segment);
+        Video savedVideo = videoRepository.save(video);
+        var videoResponse = new VideoResponse();
+        setVideoResponse(videoResponse, savedVideo, RoleEnum.ADMIN.getValue() == userDetails.getRoleId());
+        return videoResponse;
     }
 
     private UserDetailsImpl userDetails() {
@@ -207,36 +251,43 @@ public class VideoServiceImpl implements IVideoService {
         }
         List<SegmentResponse> segments = new ArrayList<>();
         List<VideoSegment> videoSegments = video.getVideoSegments();
-        Collections.sort(videoSegments);
-        for(VideoSegment segment : videoSegments) {
-            var segmentResponse = new SegmentResponse();
-            segmentResponse.setId(segment.getId());
-            segmentResponse.setLabel(segment.getLabel());
-            segmentResponse.setStartFrame(segment.getStartFrame());
-            segmentResponse.setEndFrame(segment.getEndFrame());
-            var userResponse = new UserListResponse();
-            userResponse.setId(segment.getUser().getId());
-            userResponse.setEmail(segment.getUser().getEmail());
-            userResponse.setFullName(segment.getUser().getFullName());
-            segmentResponse.setUser(userResponse);
-            segments.add(segmentResponse);
+        if (null != videoSegments) {
+            Collections.sort(videoSegments);
+            for (VideoSegment segment : videoSegments) {
+                var segmentResponse = new SegmentResponse();
+                segmentResponse.setId(segment.getId());
+                segmentResponse.setLabel(segment.getLabel());
+                segmentResponse.setStartFrame(segment.getStartFrame());
+                segmentResponse.setEndFrame(segment.getEndFrame());
+                var userResponse = new UserListResponse();
+                userResponse.setId(segment.getUser().getId());
+                userResponse.setEmail(segment.getUser().getEmail());
+                userResponse.setFullName(segment.getUser().getFullName());
+                segmentResponse.setUser(userResponse);
+                segments.add(segmentResponse);
+            }
         }
         videoResponse.setSegments(segments);
         videoResponse.setAssignedUsers(userListResponse);
     }
 
-    private boolean validateSegment(Video video, SegmentRequest segmentRequest) {
-        if (segmentRequest.getStartFrame() < 0) {
+    private boolean validateSegment(Video video, SegmentRequest segmentRequest, VideoSegment segment) {
+        if (segmentRequest.getStartFrame() < 0 || segmentRequest.getEndFrame() <= segmentRequest.getStartFrame()) {
             return false;
         }
         List<VideoSegment> videoSegments = video.getVideoSegments();
+        if (segment != null) {
+            videoSegments.remove(segment);
+        }
+        return validateOverlapSegment(segmentRequest, videoSegments);
+    }
+
+    private boolean validateOverlapSegment(SegmentRequest segmentRequest, List<VideoSegment> videoSegments){
+        Collections.sort(videoSegments);
         if (!videoSegments.isEmpty()) {
-            for (int i = 0; i < videoSegments.size(); i++) {
-                VideoSegment videoSegment = videoSegments.get(i);
-                if (i == 0 && videoSegment.getStartFrame() == 0 && segmentRequest.getStartFrame() < videoSegment.getEndFrame()
-                        || i == 0 && videoSegment.getStartFrame() != 0 && segmentRequest.getEndFrame() > videoSegment.getStartFrame()
-                        || i != 0 && segmentRequest.getStartFrame() > videoSegment.getStartFrame() && segmentRequest.getStartFrame() < videoSegment.getEndFrame()
-                        || i != 0 && segmentRequest.getEndFrame() > videoSegment.getStartFrame() && segmentRequest.getEndFrame() < videoSegment.getEndFrame()) {
+            for (VideoSegment videoSegment : videoSegments) {
+                if (segmentRequest.getStartFrame() >= videoSegment.getStartFrame() && segmentRequest.getStartFrame() < videoSegment.getEndFrame()
+                        || segmentRequest.getEndFrame() > videoSegment.getStartFrame() && segmentRequest.getEndFrame() <= videoSegment.getEndFrame()) {
                     return false;
                 }
             }
