@@ -39,6 +39,10 @@ public class Video{
     @JoinTable(name = "user_video", joinColumns = {@JoinColumn(name = "video_id")}, inverseJoinColumns = {@JoinColumn(name = "user_id")})
     private List<User> userList;
 
+    @ManyToOne
+    @JoinColumn(name = "subcategory_id")
+    private SubCategory subCategory;
+
     @PreRemove
     public void removeUser() {
         for (User user : userList) {

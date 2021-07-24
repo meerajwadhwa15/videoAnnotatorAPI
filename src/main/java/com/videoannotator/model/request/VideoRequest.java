@@ -11,4 +11,5 @@ public class VideoRequest {
     private String description;
     @NotBlank
     private String url;
+    private Long subcategoryId;
 }

@@ -6,20 +6,12 @@ import com.videoannotator.exception.NotFoundException;
 import com.videoannotator.exception.NotLoginException;
 import com.videoannotator.exception.PermissionDeniedException;
 import com.videoannotator.exception.SegmentOverlapException;
-import com.videoannotator.model.User;
-import com.videoannotator.model.UserDetailsImpl;
-import com.videoannotator.model.Video;
-import com.videoannotator.model.VideoSegment;
+import com.videoannotator.model.*;
 import com.videoannotator.model.request.SegmentRequest;
 import com.videoannotator.model.request.VideoAssignRequest;
 import com.videoannotator.model.request.VideoRequest;
-import com.videoannotator.model.response.SegmentResponse;
-import com.videoannotator.model.response.UserListResponse;
-import com.videoannotator.model.response.VideoResponse;
-import com.videoannotator.repository.RoleRepository;
-import com.videoannotator.repository.UserRepository;
-import com.videoannotator.repository.VideoRepository;
-import com.videoannotator.repository.VideoSegmentRepository;
+import com.videoannotator.model.response.*;
+import com.videoannotator.repository.*;
 import com.videoannotator.service.IVideoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
@@ -43,6 +35,7 @@ public class VideoServiceImpl implements IVideoService {
     private final RoleRepository roleRepository;
     private final MessageSource messageSource;
     private final VideoSegmentRepository segmentRepository;
+    private final SubCategoryRepository subCategoryRepository;
 
     @Override
     public List<VideoResponse> listVideo() {
@@ -50,11 +43,11 @@ public class VideoServiceImpl implements IVideoService {
         List<VideoResponse> videoResponses = new ArrayList<>();
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
             List<Video> videoList = videoRepository.findAll();
-            setListVideoResponse(videoResponses, videoList, true);
+            setListVideoResponse(videoResponses, videoList);
         } else {
             var user = userRepository.findById(userDetails.getId()).orElseThrow(NotFoundException::new);
             List<Video> videoList = videoRepository.findAllByUserList(user);
-            setListVideoResponse(videoResponses, videoList, false);
+            setListVideoResponse(videoResponses, videoList);
         }
         return videoResponses;
     }
@@ -106,6 +99,10 @@ public class VideoServiceImpl implements IVideoService {
             video.setDescription(request.getDescription());
             video.setStatus(VideoStatusEnum.NOT_ASSIGNED);
             video.setUrl(request.getUrl());
+            if (null != request.getSubcategoryId()) {
+                SubCategory subCategory = subCategoryRepository.findById(request.getSubcategoryId()).orElseThrow(NotFoundException::new);
+                video.setSubCategory(subCategory);
+            }
             var videoSaved = videoRepository.save(video);
             var response = new VideoResponse();
             setVideoResponse(response, videoSaved, true);
@@ -222,10 +219,14 @@ public class VideoServiceImpl implements IVideoService {
         return userDetails;
     }
 
-    private void setListVideoResponse(List<VideoResponse> videoResponses, List<Video> videoList, boolean isAdmin) {
+    private void setListVideoResponse(List<VideoResponse> videoResponses, List<Video> videoList) {
         for (Video video : videoList) {
             var videoResponse = new VideoResponse();
-            setVideoResponse(videoResponse, video, isAdmin);
+            videoResponse.setId(video.getId());
+            videoResponse.setName(video.getName());
+            videoResponse.setDescription(video.getDescription());
+            videoResponse.setUrl(video.getUrl());
+            videoResponse.setStatus(video.getStatus());
             videoResponses.add(videoResponse);
         }
     }
@@ -269,6 +270,20 @@ public class VideoServiceImpl implements IVideoService {
         }
         videoResponse.setSegments(segments);
         videoResponse.setAssignedUsers(userListResponse);
+
+        if (null != video.getSubCategory()) {
+            var subCategoryResponse = new SubCategoryResponse();
+            var categoryResponse = new CategoryResponse();
+            categoryResponse.setId(video.getSubCategory().getCategory().getId());
+            categoryResponse.setName(video.getSubCategory().getCategory().getName());
+            categoryResponse.setDescription(video.getSubCategory().getCategory().getDescription());
+            subCategoryResponse.setId(video.getSubCategory().getId());
+            subCategoryResponse.setName(video.getSubCategory().getName());
+            subCategoryResponse.setDescription(video.getSubCategory().getDescription());
+            subCategoryResponse.setCategory(categoryResponse);
+            videoResponse.setSubCategory(subCategoryResponse);
+        }
+
     }
 
     private boolean validateSegment(Video video, SegmentRequest segmentRequest, VideoSegment segment) {

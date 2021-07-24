@@ -16,4 +16,5 @@ public class VideoResponse {
     private VideoStatusEnum status;
     List<SegmentResponse> segments;
     List<UserListResponse> assignedUsers;
+    private SubCategoryResponse subCategory;
 }
