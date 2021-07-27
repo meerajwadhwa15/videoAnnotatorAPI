@@ -72,4 +72,18 @@ public class VideoControllerImpl implements IVideoController {
         VideoResponse response = videoService.deleteSegment(videoId, segmentId);
         return ResponseEntity.ok(response);
     }
+
+    @Override
+    public ResponseEntity<List<VideoResponse>> listVideoPublic() {
+        List<VideoResponse> responses = videoService.listVideoPublic();
+        return ResponseEntity.ok(responses);
+    }
+
+    @Override
+    public ResponseEntity<VideoResponse> detailVideoPublic(Long videoId) {
+        VideoResponse response = videoService.detailVideoPublic(videoId);
+        return ResponseEntity.ok(response);
+    }
+
+
 }

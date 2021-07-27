@@ -13,4 +13,5 @@ public class SegmentRequest {
     private Long startFrame;
     @NotNull
     private Long endFrame;
+    private String thumbnail;
 }

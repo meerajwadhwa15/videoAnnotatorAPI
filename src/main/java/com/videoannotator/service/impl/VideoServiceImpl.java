@@ -6,11 +6,17 @@ import com.videoannotator.exception.NotFoundException;
 import com.videoannotator.exception.NotLoginException;
 import com.videoannotator.exception.PermissionDeniedException;
 import com.videoannotator.exception.SegmentOverlapException;
-import com.videoannotator.model.*;
+import com.videoannotator.model.User;
+import com.videoannotator.model.UserDetailsImpl;
+import com.videoannotator.model.Video;
+import com.videoannotator.model.VideoSegment;
+import com.videoannotator.model.mapper.ObjectMapper;
 import com.videoannotator.model.request.SegmentRequest;
 import com.videoannotator.model.request.VideoAssignRequest;
 import com.videoannotator.model.request.VideoRequest;
-import com.videoannotator.model.response.*;
+import com.videoannotator.model.response.SegmentResponse;
+import com.videoannotator.model.response.UserListResponse;
+import com.videoannotator.model.response.VideoResponse;
 import com.videoannotator.repository.*;
 import com.videoannotator.service.IVideoService;
 import lombok.RequiredArgsConstructor;
@@ -43,11 +49,11 @@ public class VideoServiceImpl implements IVideoService {
         List<VideoResponse> videoResponses = new ArrayList<>();
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
             List<Video> videoList = videoRepository.findAll();
-            setListVideoResponse(videoResponses, videoList);
+            setListVideoResponse(videoResponses, videoList, true);
         } else {
             var user = userRepository.findById(userDetails.getId()).orElseThrow(NotFoundException::new);
             List<Video> videoList = videoRepository.findAllByUserList(user);
-            setListVideoResponse(videoResponses, videoList);
+            setListVideoResponse(videoResponses, videoList, false);
         }
         return videoResponses;
     }
@@ -56,17 +62,15 @@ public class VideoServiceImpl implements IVideoService {
     public VideoResponse detailVideo(Long id) {
         UserDetailsImpl userDetails = userDetails();
         var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
-        var response = new VideoResponse();
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
-            setVideoResponse(response, video, true);
+            return setVideoResponse(video, true);
         } else {
             if (video.getUserList().stream().map(User::getId).collect(Collectors.toSet()).contains(userDetails.getId())) {
-                setVideoResponse(response, video, false);
+                return setVideoResponse(video, false);
             } else {
                 throw new PermissionDeniedException();
             }
         }
-        return response;
     }
 
     @Override
@@ -85,28 +89,18 @@ public class VideoServiceImpl implements IVideoService {
         }
         video.setUserList(userList);
         var videoSaved = videoRepository.save(video);
-        var response = new VideoResponse();
-        setVideoResponse(response, videoSaved, true);
-        return response;
+        return setVideoResponse(videoSaved, true);
     }
 
     @Override
     public VideoResponse addVideo(VideoRequest request) {
         UserDetailsImpl userDetails = userDetails();
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
-            var video = new Video();
-            video.setName(request.getName());
-            video.setDescription(request.getDescription());
+            Video video = new Video();
             video.setStatus(VideoStatusEnum.NOT_ASSIGNED);
-            video.setUrl(request.getUrl());
-            if (null != request.getSubcategoryId()) {
-                SubCategory subCategory = subCategoryRepository.findById(request.getSubcategoryId()).orElseThrow(NotFoundException::new);
-                video.setSubCategory(subCategory);
-            }
+            ObjectMapper.INSTANCE.requestToVideo(video, request, subCategoryRepository);
             var videoSaved = videoRepository.save(video);
-            var response = new VideoResponse();
-            setVideoResponse(response, videoSaved, true);
-            return response;
+            return setVideoResponse(videoSaved, true);
         } else {
             throw new PermissionDeniedException();
         }
@@ -117,13 +111,9 @@ public class VideoServiceImpl implements IVideoService {
         UserDetailsImpl userDetails = userDetails();
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
             var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
-            video.setName(request.getName());
-            video.setDescription(request.getDescription());
-            video.setUrl(request.getUrl());
+            ObjectMapper.INSTANCE.requestToVideo(video, request, subCategoryRepository);
             var videoSaved = videoRepository.save(video);
-            var response = new VideoResponse();
-            setVideoResponse(response, videoSaved, true);
-            return response;
+            return setVideoResponse(videoSaved, true);
         } else {
             throw new PermissionDeniedException();
         }
@@ -151,16 +141,12 @@ public class VideoServiceImpl implements IVideoService {
         }
         if (validateSegment(video, request, null)) {
             VideoSegment segment = new VideoSegment();
-            segment.setLabel(request.getLabel());
-            segment.setStartFrame(request.getStartFrame());
-            segment.setEndFrame(request.getEndFrame());
+            ObjectMapper.INSTANCE.requestToSegment(segment, request);
             segment.setVideo(video);
             segment.setUser(user);
             segmentRepository.save(segment);
             video.getVideoSegments().add(segment);
-            var videoResponse = new VideoResponse();
-            setVideoResponse(videoResponse, video, RoleEnum.ADMIN.getValue() == userDetails.getRoleId());
-            return videoResponse;
+            return setVideoResponse(video, RoleEnum.ADMIN.getValue() == userDetails.getRoleId());
         } else {
             throw new SegmentOverlapException();
         }
@@ -179,14 +165,10 @@ public class VideoServiceImpl implements IVideoService {
             throw new PermissionDeniedException();
         }
         if (validateSegment(video, request, segment)) {
-            segment.setLabel(request.getLabel());
-            segment.setStartFrame(request.getStartFrame());
-            segment.setEndFrame(request.getEndFrame());
+            ObjectMapper.INSTANCE.requestToSegment(segment, request);
             video.getVideoSegments().add(segment);
             var savedVideo = videoRepository.save(video);
-            var videoResponse = new VideoResponse();
-            setVideoResponse(videoResponse, savedVideo, RoleEnum.ADMIN.getValue() == userDetails.getRoleId());
-            return videoResponse;
+            return setVideoResponse(savedVideo, RoleEnum.ADMIN.getValue() == userDetails.getRoleId());
         } else {
             throw new SegmentOverlapException();
         }
@@ -205,9 +187,24 @@ public class VideoServiceImpl implements IVideoService {
         }
         video.getVideoSegments().remove(segment);
         Video savedVideo = videoRepository.save(video);
-        var videoResponse = new VideoResponse();
-        setVideoResponse(videoResponse, savedVideo, RoleEnum.ADMIN.getValue() == userDetails.getRoleId());
-        return videoResponse;
+        return setVideoResponse(savedVideo, RoleEnum.ADMIN.getValue() == userDetails.getRoleId());
+    }
+
+    @Override
+    public List<VideoResponse> listVideoPublic() {
+        List<Video> videoList = videoRepository.findAll();
+        List<VideoResponse> responses = new ArrayList<>();
+        for (Video video : videoList) {
+            var videoResponse = ObjectMapper.INSTANCE.videoToVideoResponse(video);
+            responses.add(videoResponse);
+        }
+        return responses;
+    }
+
+    @Override
+    public VideoResponse detailVideoPublic(Long id) {
+        var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
+        return setVideoResponse(video, false);
     }
 
     private UserDetailsImpl userDetails() {
@@ -219,71 +216,40 @@ public class VideoServiceImpl implements IVideoService {
         return userDetails;
     }
 
-    private void setListVideoResponse(List<VideoResponse> videoResponses, List<Video> videoList) {
+    private void setListVideoResponse(List<VideoResponse> videoResponses, List<Video> videoList, boolean isAdmin) {
         for (Video video : videoList) {
-            var videoResponse = new VideoResponse();
-            videoResponse.setId(video.getId());
-            videoResponse.setName(video.getName());
-            videoResponse.setDescription(video.getDescription());
-            videoResponse.setUrl(video.getUrl());
-            videoResponse.setStatus(video.getStatus());
+            var videoResponse = ObjectMapper.INSTANCE.videoToVideoResponse(video);
+            setUserAssigned(videoResponse, video, isAdmin);
             videoResponses.add(videoResponse);
         }
     }
 
-    private void setVideoResponse(VideoResponse videoResponse, Video video, boolean isAdmin) {
-        videoResponse.setId(video.getId());
-        videoResponse.setName(video.getName());
-        videoResponse.setDescription(video.getDescription());
-        videoResponse.setSize(video.getSize());
-        videoResponse.setFormat(video.getFormat());
-        videoResponse.setUrl(video.getUrl());
-        videoResponse.setStatus(video.getStatus());
-        List<UserListResponse> userListResponse = new ArrayList<>();
-        List<User> userList = video.getUserList();
-        if (isAdmin && null != userList) {
-            for (User user : userList) {
-                var userResponse = new UserListResponse();
-                userResponse.setId(user.getId());
-                userResponse.setFullName(user.getFullName());
-                userResponse.setEmail(user.getEmail());
-                userListResponse.add(userResponse);
-            }
-        }
+    private VideoResponse setVideoResponse(Video video, boolean isAdmin) {
+        VideoResponse videoResponse = ObjectMapper.INSTANCE.videoToVideoResponse(video);
+        setUserAssigned(videoResponse, video, isAdmin);
         List<SegmentResponse> segments = new ArrayList<>();
         List<VideoSegment> videoSegments = video.getVideoSegments();
         if (null != videoSegments) {
             Collections.sort(videoSegments);
             for (VideoSegment segment : videoSegments) {
-                var segmentResponse = new SegmentResponse();
-                segmentResponse.setId(segment.getId());
-                segmentResponse.setLabel(segment.getLabel());
-                segmentResponse.setStartFrame(segment.getStartFrame());
-                segmentResponse.setEndFrame(segment.getEndFrame());
-                var userResponse = new UserListResponse();
-                userResponse.setId(segment.getUser().getId());
-                userResponse.setEmail(segment.getUser().getEmail());
-                userResponse.setFullName(segment.getUser().getFullName());
-                segmentResponse.setUser(userResponse);
+                var segmentResponse = ObjectMapper.INSTANCE.segmentToListResponse(segment);
                 segments.add(segmentResponse);
             }
         }
         videoResponse.setSegments(segments);
-        videoResponse.setAssignedUsers(userListResponse);
+        return videoResponse;
+    }
 
-        if (null != video.getSubCategory()) {
-            var subCategoryResponse = new SubCategoryResponse();
-            var categoryResponse = new CategoryResponse();
-            categoryResponse.setId(video.getSubCategory().getCategory().getId());
-            categoryResponse.setName(video.getSubCategory().getCategory().getName());
-            categoryResponse.setDescription(video.getSubCategory().getCategory().getDescription());
-            subCategoryResponse.setId(video.getSubCategory().getId());
-            subCategoryResponse.setName(video.getSubCategory().getName());
-            subCategoryResponse.setDescription(video.getSubCategory().getDescription());
-            subCategoryResponse.setCategory(categoryResponse);
-            videoResponse.setSubCategory(subCategoryResponse);
+    private void setUserAssigned(VideoResponse videoResponse, Video video, boolean isAdmin) {
+        List<UserListResponse> userListResponse = new ArrayList<>();
+        List<User> userList = video.getUserList();
+        if (isAdmin && null != userList) {
+            for (User user : userList) {
+                var userResponse = ObjectMapper.INSTANCE.userToListResponse(user);
+                userListResponse.add(userResponse);
+            }
         }
-
+        videoResponse.setAssignedUsers(userListResponse);
     }
 
     private boolean validateSegment(Video video, SegmentRequest segmentRequest, VideoSegment segment) {
@@ -297,7 +263,7 @@ public class VideoServiceImpl implements IVideoService {
         return validateOverlapSegment(segmentRequest, videoSegments);
     }
 
-    private boolean validateOverlapSegment(SegmentRequest segmentRequest, List<VideoSegment> videoSegments){
+    private boolean validateOverlapSegment(SegmentRequest segmentRequest, List<VideoSegment> videoSegments) {
         Collections.sort(videoSegments);
         if (!videoSegments.isEmpty()) {
             for (VideoSegment videoSegment : videoSegments) {

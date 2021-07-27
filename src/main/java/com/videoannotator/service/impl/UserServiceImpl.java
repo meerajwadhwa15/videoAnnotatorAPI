@@ -3,10 +3,11 @@ package com.videoannotator.service.impl;
 import com.videoannotator.config.jwt.JwtUtils;
 import com.videoannotator.constant.RoleEnum;
 import com.videoannotator.exception.*;
-import com.videoannotator.model.Mail;
 import com.videoannotator.model.ConfirmToken;
+import com.videoannotator.model.Mail;
 import com.videoannotator.model.User;
 import com.videoannotator.model.UserDetailsImpl;
+import com.videoannotator.model.mapper.ObjectMapper;
 import com.videoannotator.model.request.LoginRequest;
 import com.videoannotator.model.request.PasswordRequest;
 import com.videoannotator.model.request.RegisterRequest;
@@ -59,12 +60,7 @@ public class UserServiceImpl implements IUserService {
         if (userExisted.isPresent()) {
             throw new EmailAlreadyExistException();
         }
-        var user = new User();
-        user.setFullName(registerRequest.getFullName());
-        user.setEmail(registerRequest.getEmail());
-        user.setRole(roleRepository.findById(RoleEnum.NORMAL.getValue()).orElseThrow(NotFoundException::new));
-        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        user.setActive(false);
+        User user = ObjectMapper.INSTANCE.registerRequestToUser(registerRequest, roleRepository, passwordEncoder);
         var userSaved = userRepository.save(user);
         final var token = UUID.randomUUID().toString();
         createToken(user, token);
@@ -86,8 +82,10 @@ public class UserServiceImpl implements IUserService {
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
-
-        return new LoginResponse("Bearer " + jwtToken, userDetails.getId(), userDetails.getEmail(), userDetails.getName(), roles);
+        LoginResponse response = ObjectMapper.INSTANCE.userDetailToLoginResponse(userDetails);
+        response.setToken("Bearer " + jwtToken);
+        response.setRoles(roles);
+        return response;
     }
 
     @Override
@@ -96,8 +94,9 @@ public class UserServiceImpl implements IUserService {
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
-        return new UserDetailResponse(userDetails.getId(), userDetails.getEmail(), userDetails.getName(), userDetails.getAddress(),
-                userDetails.getPhone(), userDetails.getIntroduction(), roles);
+        UserDetailResponse response = ObjectMapper.INSTANCE.userDetailToDetailResponse(userDetails);
+        response.setRoles(roles);
+        return response;
     }
 
     @Override
@@ -108,10 +107,7 @@ public class UserServiceImpl implements IUserService {
             var role = roleRepository.findById(userDetails.getRoleId()).orElseThrow(NotFoundException::new);
             List<User> userList = userRepository.findAllByRoleIsNotAndActive(role, true);
             userList.forEach(user -> {
-                var response = new UserListResponse();
-                response.setId(user.getId());
-                response.setFullName(user.getFullName());
-                response.setEmail(user.getEmail());
+                UserListResponse response = ObjectMapper.INSTANCE.userToListResponse(user);
                 userListRespons.add(response);
             });
             return userListRespons;
@@ -147,7 +143,7 @@ public class UserServiceImpl implements IUserService {
     @Override
     public String changePassword(PasswordRequest passwordRequest) {
         UserDetailsImpl userDetails = userDetails();
-        if (passwordEncoder.matches( passwordRequest.getOldPassword(), userDetails.getPassword())) {
+        if (passwordEncoder.matches(passwordRequest.getOldPassword(), userDetails.getPassword())) {
             var user = userRepository.findByEmailAndActive(userDetails.getEmail(), true).orElseThrow(NotFoundException::new);
             user.setPassword(passwordEncoder.encode(passwordRequest.getPassword()));
             userRepository.save(user);
@@ -172,10 +168,7 @@ public class UserServiceImpl implements IUserService {
     public UserDetailResponse updateUser(UpdateUserRequest userRequest) {
         UserDetailsImpl userDetails = userDetails();
         var user = userRepository.findByEmailAndActive(userDetails.getEmail(), true).orElseThrow(NotFoundException::new);
-        user.setFullName(userRequest.getFullName());
-        user.setAddress(userRequest.getAddress());
-        user.setPhone(userRequest.getPhone());
-        user.setIntroduction(userRequest.getIntroduction());
+        ObjectMapper.INSTANCE.updateRequestToUser(user, userRequest);
         var userSaved = userRepository.save(user);
         return new UserDetailResponse(userSaved.getId(), userSaved.getEmail(), userSaved.getFullName(), userSaved.getAddress(),
                 userSaved.getPhone(), userSaved.getIntroduction(), Collections.singletonList(userSaved.getRole().getRoleName()));
@@ -211,18 +204,18 @@ public class UserServiceImpl implements IUserService {
     }
 
     private void constructResetTokenEmail(final String token, final User user) {
-        final String url = env.getProperty("url.frontend") + "/reset-password?token=" + token;
+        final String url = env.getProperty("url.frontend") + "/admin/reset-password?token=" + token;
         final String subject = messageSource.getMessage("message.reset.password", null, LocaleContextHolder.getLocale());
         sendMail(url, subject, user.getEmail(), "resetPassword");
     }
 
     private void constructConfirmEmail(final String token, final User user) {
-        final String url = env.getProperty("url.frontend") + "/email-confirmation?token=" + token;
+        final String url = env.getProperty("url.frontend") + "/admin/email-confirmation?token=" + token;
         final String subject = messageSource.getMessage("message.confirm.email", null, LocaleContextHolder.getLocale());
         sendMail(url, subject, user.getEmail(), "confirmEmail");
     }
 
-    private void sendMail (String url, String subject, String userMail, String type) {
+    private void sendMail(String url, String subject, String userMail, String type) {
         var mail = new Mail();
         mail.setSubject(subject);
         mail.setSendTo(userMail);

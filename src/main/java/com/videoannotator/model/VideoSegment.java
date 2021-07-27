@@ -20,6 +20,7 @@ public class VideoSegment implements Comparable< VideoSegment >{
     private String label;
     private Long startFrame;
     private Long endFrame;
+    private String thumbnail;
 
     @CreationTimestamp
     private LocalDateTime createTime;

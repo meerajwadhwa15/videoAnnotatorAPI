@@ -26,7 +26,7 @@ public interface IVideoController {
     @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
             , content = @Content(), example = "Bearer xxxxx...")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Register Successful", content = {@Content(mediaType = "application/json",
+            @ApiResponse(responseCode = "200", description = "Get list Successful", content = {@Content(mediaType = "application/json",
                     array = @ArraySchema(schema = @Schema(implementation = VideoResponse.class)))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
@@ -37,7 +37,7 @@ public interface IVideoController {
     @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
             , content = @Content(), example = "Bearer xxxxx...")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Register Successful", content = {@Content(mediaType = "application/json",
+            @ApiResponse(responseCode = "200", description = "Get detail video Successful", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = VideoResponse.class))}),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))}),
@@ -50,7 +50,7 @@ public interface IVideoController {
     @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
             , content = @Content(), example = "Bearer xxxxx...")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Register Successful", content = {@Content(mediaType = "application/json",
+            @ApiResponse(responseCode = "200", description = "Assign Successful", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = VideoResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
@@ -131,4 +131,25 @@ public interface IVideoController {
                     schema = @Schema(implementation = ErrorResponse.class))})})
     @DeleteMapping("{videoId}/segment/{segmentId}")
     ResponseEntity<VideoResponse> deleteSegment(@Valid @PathVariable Long videoId, @Valid @PathVariable Long segmentId);
+
+    @Operation(summary = "List video for public user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Get list Successful", content = {@Content(mediaType = "application/json",
+                    array = @ArraySchema(schema = @Schema(implementation = VideoResponse.class)))}),
+            @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))})})
+    @GetMapping("/public")
+    ResponseEntity<List<VideoResponse>> listVideoPublic();
+
+    @Operation(summary = "Details video public")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Get detail video Successful", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = VideoResponse.class))}),
+            @ApiResponse(responseCode = "404", description = "Not Found", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))}),
+            @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))})})
+    @GetMapping("public/{videoId}")
+    ResponseEntity<VideoResponse> detailVideoPublic(@Valid @PathVariable Long videoId);
+
 }

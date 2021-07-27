@@ -8,5 +8,6 @@ public class SegmentResponse {
     private String label;
     private Long startFrame;
     private Long endFrame;
+    private String thumbnail;
     private UserListResponse user;
 }

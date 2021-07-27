@@ -88,4 +88,19 @@ public interface IVideoService {
      * @return response              - Video data
      */
     VideoResponse deleteSegment(Long videoId, Long segmentId);
+
+    /**
+     * Get list video data for public
+     *
+     * @return response         - List of video data
+     */
+    List<VideoResponse> listVideoPublic();
+
+    /**
+     * Get detail video data public
+     *
+     * @param id                - Video's id
+     * @return response         - Video data
+     */
+    VideoResponse detailVideoPublic(Long id);
 }

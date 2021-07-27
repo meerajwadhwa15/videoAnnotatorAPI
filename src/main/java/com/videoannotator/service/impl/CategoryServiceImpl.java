@@ -20,12 +20,12 @@ public class CategoryServiceImpl implements ICategoryService {
     @Override
     public List<CategoryResponse> listCategory() {
         List<Category> categories = categoryRepository.findAll();
-        return ObjectMapper.INSTANCE.categoryToResponse(categories);
+        return ObjectMapper.INSTANCE.categoryToListResponse(categories);
     }
 
     @Override
     public List<SubCategoryResponse> listSubCategory(Long categoryId) {
         Category category = categoryRepository.findById(categoryId).orElseThrow(NotFoundException::new);
-        return ObjectMapper.INSTANCE.subCategoryToResponse(category.getSubCategoryList());
+        return ObjectMapper.INSTANCE.subCategoryToListResponse(category.getSubCategoryList());
     }
 }

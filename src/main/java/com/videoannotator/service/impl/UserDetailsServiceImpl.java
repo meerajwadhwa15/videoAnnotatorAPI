@@ -25,14 +25,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         var user = userRepository.findByEmailAndActive(email, true).orElseThrow(NotFoundException::new);
         var userDetails = new UserDetailsImpl();
         userDetails.setId(user.getId())
-        .setEmail(user.getEmail())
-        .setName(user.getFullName())
-        .setPassword(user.getPassword())
-        .setRoleId(user.getRole().getId())
-        .setAuthorities(Collections.singleton(new SimpleGrantedAuthority(user.getRole().getRoleName())))
-        .setAddress(user.getAddress())
-        .setPhone(user.getPhone())
-        .setIntroduction(user.getIntroduction());
+                .setEmail(user.getEmail())
+                .setFullName(user.getFullName())
+                .setPassword(user.getPassword())
+                .setRoleId(user.getRole().getId())
+                .setAuthorities(Collections.singleton(new SimpleGrantedAuthority(user.getRole().getRoleName())))
+                .setAddress(user.getAddress())
+                .setPhone(user.getPhone())
+                .setIntroduction(user.getIntroduction());
         return userDetails;
     }
 }

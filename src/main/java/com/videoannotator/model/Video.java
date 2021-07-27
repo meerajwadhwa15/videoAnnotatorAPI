@@ -25,6 +25,7 @@ public class Video{
     @Enumerated(EnumType.STRING)
     private VideoStatusEnum status;
     private String url;
+    private String thumbnail;
 
     @CreationTimestamp
     private LocalDateTime createTime;

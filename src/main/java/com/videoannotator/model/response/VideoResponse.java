@@ -13,6 +13,7 @@ public class VideoResponse {
     private String format;
     private String size;
     private String url;
+    private String thumbnail;
     private VideoStatusEnum status;
     List<SegmentResponse> segments;
     List<UserListResponse> assignedUsers;
