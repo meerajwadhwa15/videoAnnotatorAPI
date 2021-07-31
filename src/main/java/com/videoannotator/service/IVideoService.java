@@ -3,6 +3,7 @@ package com.videoannotator.service;
 import com.videoannotator.model.request.SegmentRequest;
 import com.videoannotator.model.request.VideoAssignRequest;
 import com.videoannotator.model.request.VideoRequest;
+import com.videoannotator.model.response.VideoListResponse;
 import com.videoannotator.model.response.VideoResponse;
 
 import java.util.List;
@@ -15,9 +16,14 @@ public interface IVideoService {
     /**
      * Get list video data
      *
+     * @param pageNo            - Number of page
+     * @param pageSize          - Number of record in a page
+     * @param sortBy            - sort field
+     * @param keyword           - Search text
+     *
      * @return response         - List of video data
      */
-    List<VideoResponse> listVideo();
+    VideoListResponse listVideo(Integer pageNo, Integer pageSize, String sortBy, String keyword);
 
     /**
      * Get detail video data
@@ -103,4 +109,44 @@ public interface IVideoService {
      * @return response         - Video data
      */
     VideoResponse detailVideoPublic(Long id);
+
+    /**
+     * Get list video data by category for public
+     *
+     * @return response         - List of video data
+     */
+    List<VideoResponse> listVideoByCategoryPublic(Long categoryId);
+
+    /**
+     * Get list video data by sub-category for public
+     *
+     * @return response         - List of video data
+     */
+    List<VideoResponse> listVideoBySubcategoryPublic(Long subcategoryId);
+
+    /**
+     * Get list video data by category
+     *
+     * @param pageNo            - Number of page
+     * @param pageSize          - Number of record in a page
+     * @param sortBy            - sort field
+     * @param keyword           - Search text
+     * @param categoryId        - category's id
+     *
+     * @return response         - List of video data
+     */
+    VideoListResponse listVideoByCategory(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId);
+
+    /**
+     * Get list video data by sub-category
+     *
+     * @param pageNo            - Number of page
+     * @param pageSize          - Number of record in a page
+     * @param sortBy            - sort field
+     * @param keyword           - Search text
+     * @param subcategoryId     - subcategory's id
+     *
+     * @return response         - List of video data
+     */
+    VideoListResponse listVideoBySubcategory(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long subcategoryId);
 }

@@ -4,6 +4,7 @@ import com.videoannotator.model.request.SegmentRequest;
 import com.videoannotator.model.request.VideoAssignRequest;
 import com.videoannotator.model.request.VideoRequest;
 import com.videoannotator.model.response.ErrorResponse;
+import com.videoannotator.model.response.VideoListResponse;
 import com.videoannotator.model.response.VideoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,15 +24,17 @@ import java.util.List;
 public interface IVideoController {
 
     @Operation(summary = "List video")
-    @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
-            , content = @Content(), example = "Bearer xxxxx...")
+
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Get list Successful", content = {@Content(mediaType = "application/json",
-                    array = @ArraySchema(schema = @Schema(implementation = VideoResponse.class)))}),
+                    schema = @Schema(implementation = VideoListResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
     @GetMapping
-    ResponseEntity<List<VideoResponse>> listVideo();
+    ResponseEntity<VideoListResponse> listVideo(@Parameter(description = "Page number") @RequestParam(defaultValue = "0") Integer pageNo,
+                                                  @Parameter(description = "Number of record in a page") @RequestParam(defaultValue = "10") Integer pageSize,
+                                                  @Parameter(description = "Sort field") @RequestParam(defaultValue = "id") String sortBy,
+                                                  @Parameter(description = "Search keyword") @RequestParam(defaultValue = "") String keyword);
 
     @Operation(summary = "Details video")
     @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
@@ -129,7 +132,7 @@ public interface IVideoController {
                     schema = @Schema(implementation = ErrorResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @DeleteMapping("{videoId}/segment/{segmentId}")
+    @DeleteMapping("/{videoId}/segment/{segmentId}")
     ResponseEntity<VideoResponse> deleteSegment(@Valid @PathVariable Long videoId, @Valid @PathVariable Long segmentId);
 
     @Operation(summary = "List video for public user")
@@ -149,7 +152,54 @@ public interface IVideoController {
                     schema = @Schema(implementation = ErrorResponse.class))}),
             @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @GetMapping("public/{videoId}")
+    @GetMapping("/public/{videoId}")
     ResponseEntity<VideoResponse> detailVideoPublic(@Valid @PathVariable Long videoId);
 
+    @Operation(summary = "List video by category for public user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Get list Successful", content = {@Content(mediaType = "application/json",
+                    array = @ArraySchema(schema = @Schema(implementation = VideoResponse.class)))}),
+            @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))})})
+    @GetMapping("/public/category/{categoryId}")
+    ResponseEntity<List<VideoResponse>> listByCategoryPublic(@Valid @PathVariable Long categoryId);
+
+    @Operation(summary = "List video by sub-category for public user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Get list Successful", content = {@Content(mediaType = "application/json",
+                    array = @ArraySchema(schema = @Schema(implementation = VideoResponse.class)))}),
+            @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))})})
+    @GetMapping("/public/subcategory/{subcategoryId}")
+    ResponseEntity<List<VideoResponse>> listBySubcategoryPublic(@Valid @PathVariable Long subcategoryId);
+
+    @Operation(summary = "List video by category")
+    @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
+            , content = @Content(), example = "Bearer xxxxx...")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Get list Successful", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = VideoListResponse.class))}),
+            @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))})})
+    @GetMapping("/category/{categoryId}")
+    ResponseEntity<VideoListResponse> listByCategory(@Parameter(description = "Page number") @RequestParam(defaultValue = "0") Integer pageNo,
+                                                       @Parameter(description = "Number of record in a page") @RequestParam(defaultValue = "10") Integer pageSize,
+                                                       @Parameter(description = "Sort field") @RequestParam(defaultValue = "id") String sortBy,
+                                                       @Parameter(description = "Search keyword") @RequestParam(defaultValue = "") String keyword,
+                                                       @Valid @PathVariable Long categoryId);
+
+    @Operation(summary = "List video by sub-category")
+    @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
+            , content = @Content(), example = "Bearer xxxxx...")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Get list Successful", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = VideoListResponse.class))}),
+            @ApiResponse(responseCode = "400", description = "Bad Request", content = {@Content(mediaType = "application/json",
+                    schema = @Schema(implementation = ErrorResponse.class))})})
+    @GetMapping("/subcategory/{subcategoryId}")
+    ResponseEntity<VideoListResponse> listBySubcategory(@Parameter(description = "Page number") @RequestParam(defaultValue = "0") Integer pageNo,
+                                                          @Parameter(description = "Number of record in a page") @RequestParam(defaultValue = "10") Integer pageSize,
+                                                          @Parameter(description = "Sort field") @RequestParam(defaultValue = "id") String sortBy,
+                                                          @Parameter(description = "Search keyword") @RequestParam(defaultValue = "") String keyword,
+                                                          @Valid @PathVariable Long subcategoryId);
 }
