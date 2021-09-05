@@ -4,8 +4,6 @@ import com.videoannotator.model.response.CategoryResponse;
 import com.videoannotator.model.response.ErrorResponse;
 import com.videoannotator.model.response.SubCategoryResponse;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -23,8 +21,6 @@ import java.util.List;
 public interface ICategoryController {
 
     @Operation(summary = "Get list category")
-    @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
-            , content = @Content(), example = "Bearer xxxxx...")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Get list category successful", content = {@Content(mediaType = "application/json",
                     array = @ArraySchema(schema = @Schema(implementation = CategoryResponse.class)))}),
@@ -34,8 +30,6 @@ public interface ICategoryController {
     ResponseEntity<List<CategoryResponse>> listCategory();
 
     @Operation(summary = "Get list sub-category")
-    @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"
-            , content = @Content(), example = "Bearer xxxxx...")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Get list sub-category successful", content = {@Content(mediaType = "application/json",
                     array = @ArraySchema(schema = @Schema(implementation = SubCategoryResponse.class)))}),

@@ -1,0 +1,16 @@
+id,description,name,category_id
+1,,Cartoon,1
+2,,Sci_fiction,1
+3,,Discovery,1
+4,,EDM,2
+5,,Pop,2
+6,,Jazz,2
+7,,Football,3
+8,,Basketball,3
+9,,Boxing,3
+10,,Programing,4
+11,,Science,4
+12,,Language,4
+13,,Fashion,5
+14,,Tooltip,5
+15,,Life-Style,5

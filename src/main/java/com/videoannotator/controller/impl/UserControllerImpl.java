@@ -67,8 +67,8 @@ public class UserControllerImpl implements IUserController {
     }
 
     @Override
-    public ResponseEntity<String> verifyToken(String token) {
-        String response = userService.verifyToken(token);
+    public ResponseEntity<String> resendCode(String email) {
+        String response = userService.resendCode(email);
         return ResponseEntity.ok(response);
     }
 

@@ -51,5 +51,21 @@ public class Video{
         }
     }
 
+    @OneToMany(mappedBy = "video" ,cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OrderBy("createTime DESC")
+    List<UserComment> comments;
+
+    @OneToMany(mappedBy = "video" ,cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    List<UserLike> likes;
+
+    @OneToMany(mappedBy = "video" ,cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    List<UserDislike> dislikes;
+
+    @OneToMany(mappedBy = "video" ,cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OrderBy("createTime DESC")
+    List<UserReview> reviews;
+
+    @OneToMany(mappedBy = "video" ,cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    List<UserPlaylist> playlists;
 
 }

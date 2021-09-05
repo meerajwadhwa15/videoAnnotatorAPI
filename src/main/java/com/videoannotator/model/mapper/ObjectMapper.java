@@ -1,6 +1,5 @@
 package com.videoannotator.model.mapper;
 
-import com.videoannotator.constant.RoleEnum;
 import com.videoannotator.exception.NotFoundException;
 import com.videoannotator.model.*;
 import com.videoannotator.model.request.RegisterRequest;
@@ -21,14 +20,12 @@ import java.util.List;
 public abstract class ObjectMapper {
     public static final ObjectMapper INSTANCE = Mappers.getMapper(ObjectMapper.class);
 
-    public User registerRequestToUser(RegisterRequest registerRequest, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
-        var user = new User();
+    public void registerRequestToUser(User user,RegisterRequest registerRequest, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
         user.setFullName(registerRequest.getFullName());
         user.setEmail(registerRequest.getEmail());
-        user.setRole(roleRepository.findById(RoleEnum.NORMAL.getValue()).orElseThrow(NotFoundException::new));
+        user.setRole(roleRepository.findById(registerRequest.getUserType()).orElseThrow(NotFoundException::new));
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setActive(false);
-        return user;
     }
 
     public void updateRequestToUser(User user, UpdateUserRequest userRequest) {
@@ -36,6 +33,7 @@ public abstract class ObjectMapper {
         user.setAddress(userRequest.getAddress());
         user.setPhone(userRequest.getPhone());
         user.setIntroduction(userRequest.getIntroduction());
+        user.setAvatar(userRequest.getAvatar());
     }
 
     @Mapping(target = "roles", ignore = true)
@@ -51,6 +49,7 @@ public abstract class ObjectMapper {
 
     @Mapping(target = "segments", ignore = true)
     @Mapping(target = "assignedUsers", ignore = true)
+    @Mapping(target = "playlists", ignore = true)
     public abstract VideoResponse videoToVideoResponse(Video video);
 
     public void requestToVideo(Video video, VideoRequest request, SubCategoryRepository subCategoryRepository) {
@@ -78,4 +77,13 @@ public abstract class ObjectMapper {
     public abstract SubCategoryResponse subCategoryToResponse(SubCategory subCategory);
 
     public abstract List<SubCategoryResponse> subCategoryToListResponse(List<SubCategory> subCategory);
+
+    @Mapping(target = "segments", ignore = true)
+    @Mapping(target = "userComment", ignore = true)
+    @Mapping(target = "userLike", ignore = true)
+    @Mapping(target = "userReview", ignore = true)
+    @Mapping(target = "playlists", ignore = true)
+    public abstract VideoDetailResponse videoToVideoDetailPublic(Video video);
+
+    public abstract List<PlaylistResponse> playlistToListResponse(List<Playlist> playlists);
 }

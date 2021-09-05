@@ -3,7 +3,9 @@ package com.videoannotator.controller.impl;
 import com.videoannotator.controller.IVideoController;
 import com.videoannotator.model.request.SegmentRequest;
 import com.videoannotator.model.request.VideoAssignRequest;
+import com.videoannotator.model.request.VideoPlaylistRequest;
 import com.videoannotator.model.request.VideoRequest;
+import com.videoannotator.model.response.VideoDetailResponse;
 import com.videoannotator.model.response.VideoListResponse;
 import com.videoannotator.model.response.VideoResponse;
 import com.videoannotator.service.IVideoService;
@@ -21,8 +23,8 @@ public class VideoControllerImpl implements IVideoController {
     private final IVideoService videoService;
 
     @Override
-    public ResponseEntity<VideoListResponse> listVideo(Integer pageNo, Integer pageSize, String sortBy, String keyword) {
-        VideoListResponse videoResponses = videoService.listVideo(pageNo, pageSize, sortBy, keyword);
+    public ResponseEntity<VideoListResponse> listVideo(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId, Long subcategoryId) {
+        VideoListResponse videoResponses = videoService.listVideo(pageNo, pageSize, sortBy, keyword, categoryId, subcategoryId);
         return ResponseEntity.ok(videoResponses);
     }
 
@@ -75,40 +77,21 @@ public class VideoControllerImpl implements IVideoController {
     }
 
     @Override
-    public ResponseEntity<List<VideoResponse>> listVideoPublic() {
-        List<VideoResponse> responses = videoService.listVideoPublic();
+    public ResponseEntity<VideoListResponse> listVideoPublic(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId, Long subcategoryId, Long playlistId) {
+        VideoListResponse responses = videoService.listVideoPublic(pageNo, pageSize, sortBy, keyword, categoryId, subcategoryId, playlistId);
         return ResponseEntity.ok(responses);
     }
 
     @Override
-    public ResponseEntity<VideoResponse> detailVideoPublic(Long videoId) {
-        VideoResponse response = videoService.detailVideoPublic(videoId);
+    public ResponseEntity<VideoDetailResponse> detailVideoPublic(Long videoId) {
+        VideoDetailResponse response = videoService.detailVideoPublic(videoId);
         return ResponseEntity.ok(response);
     }
 
     @Override
-    public ResponseEntity<List<VideoResponse>> listByCategoryPublic(Long categoryId) {
-        List<VideoResponse> responses = videoService.listVideoByCategoryPublic(categoryId);
-        return ResponseEntity.ok(responses);
+    public ResponseEntity<String> addPlaylist(Long videoId, List<VideoPlaylistRequest> request) {
+        String response = videoService.addVideoPlaylist(videoId, request);
+        return ResponseEntity.ok(response);
     }
-
-    @Override
-    public ResponseEntity<List<VideoResponse>> listBySubcategoryPublic(Long subcategoryId) {
-        List<VideoResponse> responses = videoService.listVideoBySubcategoryPublic(subcategoryId);
-        return ResponseEntity.ok(responses);
-    }
-
-    @Override
-    public ResponseEntity<VideoListResponse> listByCategory(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId) {
-        VideoListResponse responses = videoService.listVideoByCategory(pageNo, pageSize, sortBy, keyword, categoryId);
-        return ResponseEntity.ok(responses);
-    }
-
-    @Override
-    public ResponseEntity<VideoListResponse> listBySubcategory(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long subcategoryId) {
-        VideoListResponse responses = videoService.listVideoBySubcategory(pageNo, pageSize, sortBy, keyword, subcategoryId);
-        return ResponseEntity.ok(responses);
-    }
-
 
 }

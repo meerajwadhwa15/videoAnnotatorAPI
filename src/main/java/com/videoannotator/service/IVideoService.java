@@ -2,7 +2,9 @@ package com.videoannotator.service;
 
 import com.videoannotator.model.request.SegmentRequest;
 import com.videoannotator.model.request.VideoAssignRequest;
+import com.videoannotator.model.request.VideoPlaylistRequest;
 import com.videoannotator.model.request.VideoRequest;
+import com.videoannotator.model.response.VideoDetailResponse;
 import com.videoannotator.model.response.VideoListResponse;
 import com.videoannotator.model.response.VideoResponse;
 
@@ -20,10 +22,12 @@ public interface IVideoService {
      * @param pageSize          - Number of record in a page
      * @param sortBy            - sort field
      * @param keyword           - Search text
+     * @param categoryId        - category's id
+     * @param subcategoryId     - subcategory's id
      *
      * @return response         - List of video data
      */
-    VideoListResponse listVideo(Integer pageNo, Integer pageSize, String sortBy, String keyword);
+    VideoListResponse listVideo(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId, Long subcategoryId);
 
     /**
      * Get detail video data
@@ -98,9 +102,16 @@ public interface IVideoService {
     /**
      * Get list video data for public
      *
+     * @param pageNo            - Number of page
+     * @param pageSize          - Number of record in a page
+     * @param sortBy            - sort field
+     * @param keyword           - Search text
+     * @param categoryId        - category's id
+     * @param playlistId        - playlist's id
+     *
      * @return response         - List of video data
      */
-    List<VideoResponse> listVideoPublic();
+    VideoListResponse listVideoPublic(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId, Long subcategoryId, Long playlistId);
 
     /**
      * Get detail video data public
@@ -108,45 +119,8 @@ public interface IVideoService {
      * @param id                - Video's id
      * @return response         - Video data
      */
-    VideoResponse detailVideoPublic(Long id);
+    VideoDetailResponse detailVideoPublic(Long id);
 
-    /**
-     * Get list video data by category for public
-     *
-     * @return response         - List of video data
-     */
-    List<VideoResponse> listVideoByCategoryPublic(Long categoryId);
+    String addVideoPlaylist(Long videoId, List<VideoPlaylistRequest> request);
 
-    /**
-     * Get list video data by sub-category for public
-     *
-     * @return response         - List of video data
-     */
-    List<VideoResponse> listVideoBySubcategoryPublic(Long subcategoryId);
-
-    /**
-     * Get list video data by category
-     *
-     * @param pageNo            - Number of page
-     * @param pageSize          - Number of record in a page
-     * @param sortBy            - sort field
-     * @param keyword           - Search text
-     * @param categoryId        - category's id
-     *
-     * @return response         - List of video data
-     */
-    VideoListResponse listVideoByCategory(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId);
-
-    /**
-     * Get list video data by sub-category
-     *
-     * @param pageNo            - Number of page
-     * @param pageSize          - Number of record in a page
-     * @param sortBy            - sort field
-     * @param keyword           - Search text
-     * @param subcategoryId     - subcategory's id
-     *
-     * @return response         - List of video data
-     */
-    VideoListResponse listVideoBySubcategory(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long subcategoryId);
 }

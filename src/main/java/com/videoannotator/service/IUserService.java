@@ -73,10 +73,10 @@ public interface IUserService {
     /**
      * Update new password when reset
      *
-     * @param token             - Token reset password
+     * @param email             - Email resend code
      * @return string           - Ok message
      */
-    String verifyToken(String token);
+    String resendCode(String email);
 
     /**
      * Update new password when reset

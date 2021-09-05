@@ -3,21 +3,22 @@ package com.videoannotator.service.impl;
 import com.videoannotator.constant.RoleEnum;
 import com.videoannotator.constant.VideoStatusEnum;
 import com.videoannotator.exception.NotFoundException;
-import com.videoannotator.exception.NotLoginException;
 import com.videoannotator.exception.PermissionDeniedException;
 import com.videoannotator.exception.SegmentOverlapException;
 import com.videoannotator.model.*;
 import com.videoannotator.model.mapper.ObjectMapper;
 import com.videoannotator.model.request.SegmentRequest;
 import com.videoannotator.model.request.VideoAssignRequest;
+import com.videoannotator.model.request.VideoPlaylistRequest;
 import com.videoannotator.model.request.VideoRequest;
-import com.videoannotator.model.response.SegmentResponse;
-import com.videoannotator.model.response.UserListResponse;
+import com.videoannotator.model.response.VideoDetailResponse;
 import com.videoannotator.model.response.VideoListResponse;
 import com.videoannotator.model.response.VideoResponse;
 import com.videoannotator.repository.*;
 import com.videoannotator.repository.specification.VideoSpecification;
 import com.videoannotator.service.IVideoService;
+import com.videoannotator.util.UserUtils;
+import com.videoannotator.util.VideoUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -28,9 +29,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -46,28 +47,29 @@ public class VideoServiceImpl implements IVideoService {
     private final VideoSegmentRepository segmentRepository;
     private final SubCategoryRepository subCategoryRepository;
     private final CategoryRepository categoryRepository;
+    private final PlaylistRepository playlistRepository;
+    private final UserPlaylistRepository userPlaylistRepository;
     private final VideoSpecification videoSpecification;
+    private final UserUtils userUtils;
+    private final VideoUtils videoUtils;
 
     @Override
-    public VideoListResponse listVideo(Integer pageNo, Integer pageSize, String sortBy, String keyword) {
-        UserDetailsImpl userDetails = userDetails();
-        List<VideoResponse> listVideo = new ArrayList<>();
+    public VideoListResponse listVideo(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId, Long subcategoryId) {
+        UserDetailsImpl userDetails = userUtils.userDetails();
         Pageable paging = PageRequest.of(pageNo, pageSize, Sort.by(sortBy));
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
-            Page<Video> videos = videoRepository.findAll(videoSpecification.filterByConditions(null, null, keyword), paging);
-            setListVideo(listVideo, videos.getContent(), true);
-            return setVideoListResponse(videos, pageNo, listVideo);
+            Page<Video> videos = videoRepository.findAll(videoSpecification.filterByConditions(null, videoUtils.setSubcategoryList(subcategoryId, categoryId, subCategoryRepository, categoryRepository), null, keyword), paging);
+            return videoUtils.setVideoListResponse(videos, pageNo, videoUtils.setListVideo(videos.getContent(), true));
         } else {
             var user = userRepository.findById(userDetails.getId()).orElseThrow(NotFoundException::new);
-            Page<Video> videos = videoRepository.findAll(videoSpecification.filterByConditions(user, null, keyword), paging);
-            setListVideo(listVideo, videos.getContent(), false);
-            return setVideoListResponse(videos, pageNo, listVideo);
+            Page<Video> videos = videoRepository.findAll(videoSpecification.filterByConditions(user, videoUtils.setSubcategoryList(subcategoryId, categoryId, subCategoryRepository, categoryRepository), null, keyword), paging);
+            return videoUtils.setVideoListResponse(videos, pageNo, videoUtils.setListVideo(videos.getContent(), false));
         }
     }
 
     @Override
     public VideoResponse detailVideo(Long id) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
             return setVideoResponse(video, true);
@@ -82,7 +84,7 @@ public class VideoServiceImpl implements IVideoService {
 
     @Override
     public VideoResponse assignVideo(VideoAssignRequest assignRequest, Long videoId) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         if (RoleEnum.ADMIN.getValue() != userDetails.getRoleId()) {
             throw new PermissionDeniedException();
         }
@@ -101,7 +103,7 @@ public class VideoServiceImpl implements IVideoService {
 
     @Override
     public VideoResponse addVideo(VideoRequest request) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
             Video video = new Video();
             video.setStatus(VideoStatusEnum.NOT_ASSIGNED);
@@ -115,7 +117,7 @@ public class VideoServiceImpl implements IVideoService {
 
     @Override
     public VideoResponse updateVideo(Long id, VideoRequest request) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
             var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
             ObjectMapper.INSTANCE.requestToVideo(video, request, subCategoryRepository);
@@ -128,7 +130,7 @@ public class VideoServiceImpl implements IVideoService {
 
     @Override
     public String deleteVideo(Long id) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
             var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
             videoRepository.delete(video);
@@ -140,7 +142,7 @@ public class VideoServiceImpl implements IVideoService {
 
     @Override
     public VideoResponse addSegment(Long id, SegmentRequest request) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
         var user = userRepository.findByEmailAndActive(userDetails.getEmail(), true).orElseThrow(NotFoundException::new);
         if (RoleEnum.NORMAL.getValue() == userDetails.getRoleId() && !video.getUserList().stream().map(User::getId).collect(Collectors.toList()).contains(user.getId())) {
@@ -161,7 +163,7 @@ public class VideoServiceImpl implements IVideoService {
 
     @Override
     public VideoResponse editSegment(Long id, SegmentRequest request, Long segmentId) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
         if (!video.getVideoSegments().stream().map(VideoSegment::getId).collect(Collectors.toList()).contains(segmentId)) {
             throw new NotFoundException();
@@ -183,7 +185,7 @@ public class VideoServiceImpl implements IVideoService {
 
     @Override
     public VideoResponse deleteSegment(Long videoId, Long segmentId) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         var video = videoRepository.findById(videoId).orElseThrow(NotFoundException::new);
         if (!video.getVideoSegments().stream().map(VideoSegment::getId).collect(Collectors.toList()).contains(segmentId)) {
             throw new NotFoundException();
@@ -198,126 +200,58 @@ public class VideoServiceImpl implements IVideoService {
     }
 
     @Override
-    public List<VideoResponse> listVideoPublic() {
-        List<Video> videoList = videoRepository.findAll();
-        List<VideoResponse> responses = new ArrayList<>();
-        for (Video video : videoList) {
-            var videoResponse = ObjectMapper.INSTANCE.videoToVideoResponse(video);
-            responses.add(videoResponse);
+    public VideoListResponse listVideoPublic(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId, Long subcategoryId, Long playlistId) {
+        Pageable paging = PageRequest.of(pageNo, pageSize, Sort.by(sortBy));
+        List<UserPlaylist> userPlaylists = null;
+        if (playlistId != null) {
+            UserDetailsImpl userDetails = userUtils.userDetails();
+            var playlist = playlistRepository.findById(playlistId).orElseThrow(NotFoundException::new);
+            var user = userRepository.findById(userDetails.getId()).orElseThrow(NotFoundException::new);
+            userPlaylists = userPlaylistRepository.findAllByUserAndPlaylist(user, playlist);
         }
-        return responses;
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = null;
+        if (authentication.getPrincipal() instanceof UserDetailsImpl) {
+            userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        }
+        Page<Video> videos = videoRepository.findAll(videoSpecification.filterByConditions(null, videoUtils.setSubcategoryList(subcategoryId, categoryId, subCategoryRepository, categoryRepository), userPlaylists, keyword), paging);
+        return videoUtils.setVideoListResponse(videos, pageNo, videoUtils.setListVideoForPublic(videos.getContent(), playlistRepository.findAll(), userDetails));
     }
 
     @Override
-    public VideoResponse detailVideoPublic(Long id) {
+    public VideoDetailResponse detailVideoPublic(Long id) {
         var video = videoRepository.findById(id).orElseThrow(NotFoundException::new);
-        return setVideoResponse(video, false);
+        return setVideoDetailPublic(video);
     }
 
     @Override
-    public List<VideoResponse> listVideoByCategoryPublic(Long categoryId) {
-        Category category = categoryRepository.findById(categoryId).orElseThrow(NotFoundException::new);
-        List<VideoResponse> responses = new ArrayList<>();
-        for (SubCategory subCategory : category.getSubCategoryList()) {
-            for (Video video : subCategory.getVideos()) {
-                var videoResponse = ObjectMapper.INSTANCE.videoToVideoResponse(video);
-                responses.add(videoResponse);
+    public String addVideoPlaylist(Long videoId, List<VideoPlaylistRequest> request) {
+        UserDetailsImpl userDetails = userUtils.userDetails();
+        var user = userRepository.findById(userDetails.getId()).orElseThrow(NotFoundException::new);
+        var video = videoRepository.findById(videoId).orElseThrow(NotFoundException::new);
+        for (VideoPlaylistRequest videoPlaylist : request) {
+            var playlist = playlistRepository.findById(videoPlaylist.getId()).orElseThrow(NotFoundException::new);
+            Optional<UserPlaylist> userPlaylist = userPlaylistRepository.findByUserAndPlaylistAndVideo(user, playlist, video);
+            if (videoPlaylist.isSelected()) {
+                if (userPlaylist.isEmpty()) {
+                    UserPlaylist userPlaylistNew = new UserPlaylist();
+                    userPlaylistNew.setPlaylist(playlist);
+                    userPlaylistNew.setUser(user);
+                    userPlaylistNew.setVideo(video);
+                    userPlaylistRepository.save(userPlaylistNew);
+                }
+            } else {
+                userPlaylist.ifPresent(userPlaylistRepository::delete);
             }
         }
-        return responses;
-    }
-
-    @Override
-    public List<VideoResponse> listVideoBySubcategoryPublic(Long subcategoryId) {
-        SubCategory subCategory = subCategoryRepository.findById(subcategoryId).orElseThrow(NotFoundException::new);
-        List<VideoResponse> responses = new ArrayList<>();
-        for (Video video : subCategory.getVideos()) {
-            var videoResponse = ObjectMapper.INSTANCE.videoToVideoResponse(video);
-            responses.add(videoResponse);
-        }
-        return responses;
-    }
-
-    @Override
-    public VideoListResponse listVideoByCategory(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long categoryId) {
-        UserDetailsImpl userDetails = userDetails();
-        List<VideoResponse> videoResponses = new ArrayList<>();
-        Pageable paging = PageRequest.of(pageNo, pageSize, Sort.by(sortBy));
-        Category category = categoryRepository.findById(categoryId).orElseThrow(NotFoundException::new);
-        if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
-            Page<Video> videos = videoRepository.findAll(videoSpecification.filterByConditions(null, category.getSubCategoryList(), keyword), paging);
-            setListVideo(videoResponses, videos.getContent(), true);
-            return setVideoListResponse(videos, pageNo, videoResponses);
-        } else {
-            var user = userRepository.findById(userDetails.getId()).orElseThrow(NotFoundException::new);
-            Page<Video> videos = videoRepository.findAll(videoSpecification.filterByConditions(user, category.getSubCategoryList(), keyword), paging);
-            setListVideo(videoResponses, videos.getContent(), false);
-            return setVideoListResponse(videos, pageNo, videoResponses);
-        }
-    }
-
-    @Override
-    public VideoListResponse listVideoBySubcategory(Integer pageNo, Integer pageSize, String sortBy, String keyword, Long subcategoryId) {
-        UserDetailsImpl userDetails = userDetails();
-        List<VideoResponse> videoResponses = new ArrayList<>();
-        Pageable paging = PageRequest.of(pageNo, pageSize, Sort.by(sortBy));
-        SubCategory subCategory = subCategoryRepository.findById(subcategoryId).orElseThrow(NotFoundException::new);
-        if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
-            Page<Video> videos = videoRepository.findAll(videoSpecification.filterByConditions(null, Collections.singletonList(subCategory), keyword), paging);
-            setListVideo(videoResponses, videos.getContent(), true);
-            return setVideoListResponse(videos, pageNo, videoResponses);
-        } else {
-            var user = userRepository.findById(userDetails.getId()).orElseThrow(NotFoundException::new);
-            Page<Video> videos = videoRepository.findAll(videoSpecification.filterByConditions(user, Collections.singletonList(subCategory), keyword), paging);
-            setListVideo(videoResponses, videos.getContent(), false);
-            return setVideoListResponse(videos, pageNo, videoResponses);
-
-        }
-    }
-
-    private UserDetailsImpl userDetails() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        if (userDetails == null) {
-            throw new NotLoginException();
-        }
-        return userDetails;
-    }
-
-    private void setListVideo(List<VideoResponse> videoResponses, List<Video> videoList, boolean isAdmin) {
-        for (Video video : videoList) {
-            var videoResponse = ObjectMapper.INSTANCE.videoToVideoResponse(video);
-            setUserAssigned(videoResponse, video, isAdmin);
-            videoResponses.add(videoResponse);
-        }
+        return messageSource.getMessage(SUCCESS, null, LocaleContextHolder.getLocale());
     }
 
     private VideoResponse setVideoResponse(Video video, boolean isAdmin) {
         VideoResponse videoResponse = ObjectMapper.INSTANCE.videoToVideoResponse(video);
-        setUserAssigned(videoResponse, video, isAdmin);
-        List<SegmentResponse> segments = new ArrayList<>();
-        List<VideoSegment> videoSegments = video.getVideoSegments();
-        if (null != videoSegments) {
-            Collections.sort(videoSegments);
-            for (VideoSegment segment : videoSegments) {
-                var segmentResponse = ObjectMapper.INSTANCE.segmentToListResponse(segment);
-                segments.add(segmentResponse);
-            }
-        }
-        videoResponse.setSegments(segments);
+        videoUtils.setUserAssigned(videoResponse, video, isAdmin);
+        videoResponse.setSegments(videoUtils.setVideoSegment(video));
         return videoResponse;
-    }
-
-    private void setUserAssigned(VideoResponse videoResponse, Video video, boolean isAdmin) {
-        List<UserListResponse> userListResponse = new ArrayList<>();
-        List<User> userList = video.getUserList();
-        if (isAdmin && null != userList) {
-            for (User user : userList) {
-                var userResponse = ObjectMapper.INSTANCE.userToListResponse(user);
-                userListResponse.add(userResponse);
-            }
-        }
-        videoResponse.setAssignedUsers(userListResponse);
     }
 
     private boolean validateSegment(Video video, SegmentRequest segmentRequest, VideoSegment segment) {
@@ -344,12 +278,19 @@ public class VideoServiceImpl implements IVideoService {
         return true;
     }
 
-    private VideoListResponse setVideoListResponse(Page<Video> videoList, Integer pageNo, List<VideoResponse> videoResponses) {
-        VideoListResponse listResponse = new VideoListResponse();
-        listResponse.setTotalPage(videoList.getTotalPages());
-        listResponse.setTotalRecord(videoList.getTotalElements());
-        listResponse.setCurrentPageNo(pageNo);
-        listResponse.setVideoList(videoResponses);
-        return listResponse;
+    private VideoDetailResponse setVideoDetailPublic(Video video) {
+        VideoDetailResponse response = ObjectMapper.INSTANCE.videoToVideoDetailPublic(video);
+        response.setSegments(videoUtils.setVideoSegment(video));
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = null;
+        if (authentication.getPrincipal() instanceof UserDetailsImpl) {
+            userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        }
+        response.setUserComment(videoUtils.setUserComment(video, userDetails));
+        response.setUserLike(videoUtils.setUserLike(video, userDetails));
+        response.setUserReview(videoUtils.setUserReview(video, userDetails));
+        response.setPlaylists(videoUtils.setVideoPlaylist(video, playlistRepository.findAll(), userDetails));
+        return response;
     }
+
 }

@@ -21,11 +21,12 @@ import com.videoannotator.repository.RoleRepository;
 import com.videoannotator.repository.UserRepository;
 import com.videoannotator.service.IEmailService;
 import com.videoannotator.service.IUserService;
+import com.videoannotator.util.UserUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.bytebuddy.utility.RandomString;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -51,18 +52,24 @@ public class UserServiceImpl implements IUserService {
     private final AuthenticationManager authenticationManager;
     private final MessageSource messageSource;
     private final IEmailService emailService;
-    private final Environment env;
     private final JwtUtils jwtUtils;
+    private final UserUtils userUtils;
 
     @Override
     public RegisterResponse<Long> registerUser(RegisterRequest registerRequest) {
         Optional<User> userExisted = userRepository.findByEmailAndActive(registerRequest.getEmail(), true);
+        User user = new User();
         if (userExisted.isPresent()) {
             throw new EmailAlreadyExistException();
+        } else {
+            userExisted = userRepository.findByEmailAndActive(registerRequest.getEmail(), false);
+            if (userExisted.isPresent()) {
+                user = userExisted.get();
+            }
         }
-        User user = ObjectMapper.INSTANCE.registerRequestToUser(registerRequest, roleRepository, passwordEncoder);
+        ObjectMapper.INSTANCE.registerRequestToUser(user, registerRequest, roleRepository, passwordEncoder);
         var userSaved = userRepository.save(user);
-        final var token = UUID.randomUUID().toString();
+        final var token = RandomString.make(8);
         createToken(user, token);
         constructConfirmEmail(token, user);
         var response = new RegisterResponse<Long>();
@@ -90,7 +97,7 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public UserDetailResponse currentUser() {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
@@ -101,16 +108,16 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public List<UserListResponse> listUser() {
-        UserDetailsImpl userDetails = userDetails();
-        List<UserListResponse> userListRespons = new LinkedList<>();
+        UserDetailsImpl userDetails = userUtils.userDetails();
+        List<UserListResponse> userListResponse = new LinkedList<>();
         if (RoleEnum.ADMIN.getValue() == userDetails.getRoleId()) {
             var role = roleRepository.findById(userDetails.getRoleId()).orElseThrow(NotFoundException::new);
             List<User> userList = userRepository.findAllByRoleIsNotAndActive(role, true);
             userList.forEach(user -> {
                 UserListResponse response = ObjectMapper.INSTANCE.userToListResponse(user);
-                userListRespons.add(response);
+                userListResponse.add(response);
             });
-            return userListRespons;
+            return userListResponse;
         } else {
             throw new PermissionDeniedException();
         }
@@ -119,7 +126,7 @@ public class UserServiceImpl implements IUserService {
     @Override
     public String resetPassword(String email) {
         var user = userRepository.findByEmailAndActive(email, true).orElseThrow(NotFoundException::new);
-        final var token = UUID.randomUUID().toString();
+        final var token = RandomString.make(8);
         createToken(user, token);
         constructResetTokenEmail(token, user);
         return messageSource.getMessage(SUCCESS, null, LocaleContextHolder.getLocale());
@@ -137,12 +144,13 @@ public class UserServiceImpl implements IUserService {
             throw new TokenExpiredException();
         }
         passwordResetRepository.delete(passwordReset);
+        passwordResetRepository.deleteAll(passwordResetRepository.findAllByUser(passwordReset.getUser()));
         return messageSource.getMessage(SUCCESS, null, LocaleContextHolder.getLocale());
     }
 
     @Override
     public String changePassword(PasswordRequest passwordRequest) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         if (passwordEncoder.matches(passwordRequest.getOldPassword(), userDetails.getPassword())) {
             var user = userRepository.findByEmailAndActive(userDetails.getEmail(), true).orElseThrow(NotFoundException::new);
             user.setPassword(passwordEncoder.encode(passwordRequest.getPassword()));
@@ -154,24 +162,28 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public String verifyToken(String token) {
-        var passwordReset = passwordResetRepository.findByToken(token).orElseThrow(NotFoundException::new);
-        var cal = Calendar.getInstance();
-        if (passwordReset.getExpiryDate().after(cal.getTime())) {
-            return messageSource.getMessage(SUCCESS, null, LocaleContextHolder.getLocale());
+    public String resendCode(String email) {
+        var user = userRepository.findByEmailAndActive(email, true).orElse(new User());
+        final var token = RandomString.make(8);
+        if (null == user.getId()) {
+            user = userRepository.findByEmailAndActive(email, false).orElseThrow(NotFoundException::new);
+            createToken(user, token);
+            constructConfirmEmail(token, user);
         } else {
-            throw new TokenExpiredException();
+            createToken(user, token);
+            constructResetTokenEmail(token, user);
         }
+        return messageSource.getMessage(SUCCESS, null, LocaleContextHolder.getLocale());
     }
 
     @Override
     public UserDetailResponse updateUser(UpdateUserRequest userRequest) {
-        UserDetailsImpl userDetails = userDetails();
+        UserDetailsImpl userDetails = userUtils.userDetails();
         var user = userRepository.findByEmailAndActive(userDetails.getEmail(), true).orElseThrow(NotFoundException::new);
         ObjectMapper.INSTANCE.updateRequestToUser(user, userRequest);
         var userSaved = userRepository.save(user);
         return new UserDetailResponse(userSaved.getId(), userSaved.getEmail(), userSaved.getFullName(), userSaved.getAddress(),
-                userSaved.getPhone(), userSaved.getIntroduction(), Collections.singletonList(userSaved.getRole().getRoleName()));
+                userSaved.getPhone(), userSaved.getIntroduction(), userSaved.getAvatar(), Collections.singletonList(userSaved.getRole().getRoleName()));
     }
 
     @Override
@@ -179,23 +191,15 @@ public class UserServiceImpl implements IUserService {
         var confirmToken = passwordResetRepository.findByToken(token).orElseThrow(NotFoundException::new);
         var cal = Calendar.getInstance();
         if (confirmToken.getExpiryDate().after(cal.getTime())) {
-            User user = userRepository.findById(confirmToken.getUser().getId()).orElseThrow(NotFoundException::new);
+            var user = confirmToken.getUser();
             user.setActive(true);
             userRepository.save(user);
             passwordResetRepository.delete(confirmToken);
+            passwordResetRepository.deleteAll(passwordResetRepository.findAllByUser(confirmToken.getUser()));
             return messageSource.getMessage(SUCCESS, null, LocaleContextHolder.getLocale());
         } else {
             throw new TokenExpiredException();
         }
-    }
-
-    private UserDetailsImpl userDetails() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        if (userDetails == null) {
-            throw new NotLoginException();
-        }
-        return userDetails;
     }
 
     private void createToken(final User user, final String token) {
@@ -204,15 +208,13 @@ public class UserServiceImpl implements IUserService {
     }
 
     private void constructResetTokenEmail(final String token, final User user) {
-        final String url = env.getProperty("url.frontend") + "/admin/reset-password?token=" + token;
         final String subject = messageSource.getMessage("message.reset.password", null, LocaleContextHolder.getLocale());
-        sendMail(url, subject, user.getEmail(), "resetPassword");
+        sendMail(token, subject, user.getEmail(), "resetPassword");
     }
 
     private void constructConfirmEmail(final String token, final User user) {
-        final String url = env.getProperty("url.frontend") + "/admin/email-confirmation?token=" + token;
         final String subject = messageSource.getMessage("message.confirm.email", null, LocaleContextHolder.getLocale());
-        sendMail(url, subject, user.getEmail(), "confirmEmail");
+        sendMail(token, subject, user.getEmail(), "confirmEmail");
     }
 
     private void sendMail(String url, String subject, String userMail, String type) {

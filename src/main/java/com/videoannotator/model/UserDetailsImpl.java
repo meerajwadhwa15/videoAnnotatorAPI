@@ -25,6 +25,7 @@ public class UserDetailsImpl implements UserDetails {
     private String address;
     private String phone;
     private String introduction;
+    private String avatar;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

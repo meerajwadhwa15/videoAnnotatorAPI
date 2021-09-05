@@ -32,7 +32,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .setAuthorities(Collections.singleton(new SimpleGrantedAuthority(user.getRole().getRoleName())))
                 .setAddress(user.getAddress())
                 .setPhone(user.getPhone())
-                .setIntroduction(user.getIntroduction());
+                .setIntroduction(user.getIntroduction())
+                .setAvatar(user.getAvatar());
         return userDetails;
     }
 }

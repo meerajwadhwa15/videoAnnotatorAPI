@@ -69,12 +69,13 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 "/user/signin",
                 "/user/resetPassword",
                 "/user/newPassword",
-                "/user/verifyToken",
+                "/user/resend",
                 "/user/confirmEmail",
                 "/actuator/**",
                 "/resources/**",
-                "/video/public/**").permitAll()
-                .antMatchers("/category/**").hasAuthority("Admin")
+                "/video/public/**",
+                "/category/**").permitAll()
+                //.antMatchers("/category/**").hasAuthority("Admin")
                 .anyRequest().authenticated();
         httpSecurity.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
     }

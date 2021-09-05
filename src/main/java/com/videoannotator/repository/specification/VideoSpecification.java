@@ -1,9 +1,6 @@
 package com.videoannotator.repository.specification;
 
-import com.videoannotator.model.Category;
-import com.videoannotator.model.SubCategory;
-import com.videoannotator.model.User;
-import com.videoannotator.model.Video;
+import com.videoannotator.model.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +12,11 @@ import java.util.stream.Collectors;
 @Component
 public class VideoSpecification {
 
-    public Specification<Video> filterByConditions(User user, List<SubCategory> subCategories, String keyword) {
+    public Specification<Video> filterByConditions(User user, List<SubCategory> subCategories, List<UserPlaylist> userPlaylists, String keyword) {
         return (videoRoot, query, criteriaBuilder) -> {
             Join<Video, SubCategory> subCategoryJoin = videoRoot.join("subCategory");
             Join<SubCategory, Category> categoryJoin = subCategoryJoin.join("category");
+
             String pattern = "%" + keyword + "%";
             Predicate predicate = criteriaBuilder.or(
                     criteriaBuilder.or(
@@ -32,9 +30,14 @@ public class VideoSpecification {
                 predicate = criteriaBuilder.and(predicate,
                         criteriaBuilder.equal(userJoin.get("id"), user.getId()));
             }
-            if (subCategories != null) {
+            if (!subCategories.isEmpty()) {
                 predicate = criteriaBuilder.and(predicate,
                         criteriaBuilder.in(subCategoryJoin.get("id")).value(subCategories.stream().map(SubCategory::getId).collect(Collectors.toList())));
+            }
+            if (null != userPlaylists) {
+                Join<Video, UserPlaylist> playlistJoin = videoRoot.join("playlists");
+                predicate = criteriaBuilder.and(predicate,
+                        criteriaBuilder.in(playlistJoin.get("id")).value(userPlaylists.stream().map(UserPlaylist::getId).collect(Collectors.toList())));
             }
             return predicate;
         };

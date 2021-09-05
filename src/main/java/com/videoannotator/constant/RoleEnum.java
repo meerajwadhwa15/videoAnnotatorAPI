@@ -7,6 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum RoleEnum {
     ADMIN(1),
-    NORMAL(2);
+    NORMAL(2),
+    CONSUMER(3);
     private final long value;
 }

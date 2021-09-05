@@ -103,8 +103,8 @@ public interface IUserController {
                     schema = @Schema(implementation = ErrorResponse.class))}),
             @ApiResponse(responseCode = "404", description = "Not Found", content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = ErrorResponse.class))})})
-    @PostMapping("/verifyToken")
-    ResponseEntity<String> verifyToken(@Valid @RequestParam String token);
+    @PostMapping("/resend")
+    ResponseEntity<String> resendCode(@Valid @RequestParam String email);
 
     @Operation(summary = "Update user profile")
     @Parameter(in = ParameterIn.HEADER, description = "Access token required", name = "Authorization"

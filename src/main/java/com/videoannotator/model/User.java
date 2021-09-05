@@ -23,6 +23,7 @@ public class User {
     private String address;
     private String phone;
     private String introduction;
+    private String avatar;
     private boolean active;
 
     @CreationTimestamp
@@ -39,4 +40,16 @@ public class User {
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, orphanRemoval = true)
     List<VideoSegment> videoSegments;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, orphanRemoval = true)
+    List<UserPlaylist> userPlaylists;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, orphanRemoval = true)
+    List<UserComment> comments;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, orphanRemoval = true)
+    List<UserLike> likes;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, orphanRemoval = true)
+    List<UserReview> reviews;
 }
